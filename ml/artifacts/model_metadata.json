@@ -1,0 +1,354 @@
+{
+  "model_version": "rf-signal-activity-v2",
+  "training_date": "2026-08-31T19:04:59.426737+00:00",
+  "dataset_name": "RF Signal Data / logged_data.csv",
+  "dataset_type": "hybrid_real_measured_plus_derived_plus_inferred_pseudolabel",
+  "provenance": "PARTIALLY VERIFIED: source/published evidence reports SDR acquisition; exact CSV lacks a complete calibration/acquisition record.",
+  "target": "inferred_rf_activity",
+  "target_is_ground_truth": false,
+  "target_method": "Training-only per-frequency median of recorded signal_strength_dbm defines a detectable-RF-activity proxy. This is an inferred/pseudo-label, not occupancy ground truth.",
+  "target_generation_feature": "signal_strength_dbm",
+  "target_generation_feature_used_as_ml_predictor": false,
+  "features": [
+    "frequency_mhz",
+    "bandwidth_khz",
+    "iq_available",
+    "iq_rms_magnitude",
+    "iq_magnitude_variance",
+    "iq_peak_magnitude",
+    "iq_crest_factor",
+    "iq_p10",
+    "iq_p50",
+    "iq_p90",
+    "iq_phase_concentration",
+    "iq_spectral_entropy",
+    "iq_spectral_peak_ratio"
+  ],
+  "excluded_features": [
+    "signal_strength_dbm",
+    "Timestamp",
+    "Modulation",
+    "Interference Type",
+    "Device Type",
+    "Device Status",
+    "Location",
+    "Latitude",
+    "Longitude",
+    "Altitude(m)",
+    "Battery Level",
+    "Power Source",
+    "CPU Usage",
+    "Memory Usage",
+    "WiFi Strength",
+    "Disk Usage",
+    "System Load",
+    "Air Pressure"
+  ],
+  "split_strategy": "Chronological 60/20/20; no random shuffling. Additional frequency-holdout experiment is recommended.",
+  "training_samples": 98496,
+  "validation_samples": 32832,
+  "test_samples": 32832,
+  "class_distribution": {
+    "train": {
+      "0": 48601,
+      "1": 49895
+    },
+    "validation": {
+      "0": 16347,
+      "1": 16485
+    },
+    "test": {
+      "0": 16199,
+      "1": 16633
+    }
+  },
+  "models_evaluated": {
+    "DummyClassifier": {
+      "validation_threshold": 0.05,
+      "validation": {
+        "accuracy": 0.5021016081871345,
+        "balanced_accuracy": 0.5,
+        "precision_occupied": 0.5021016081871345,
+        "recall_occupied": 1.0,
+        "f1_occupied": 0.6685321491574914,
+        "roc_auc": 0.5,
+        "pr_auc": 0.5021016081871345,
+        "brier_score": 0.250015538998117,
+        "false_available": 0,
+        "false_occupied": 16347,
+        "false_available_rate": 0.0,
+        "confusion_matrix": [
+          [
+            0,
+            16347
+          ],
+          [
+            0,
+            16485
+          ]
+        ]
+      },
+      "test": {
+        "accuracy": 0.5066094054580896,
+        "balanced_accuracy": 0.5,
+        "precision_occupied": 0.5066094054580896,
+        "recall_occupied": 1.0,
+        "f1_occupied": 0.6725159203477206,
+        "roc_auc": 0.5,
+        "pr_auc": 0.5066094054580896,
+        "brier_score": 0.24995631740872643,
+        "false_available": 0,
+        "false_occupied": 16199,
+        "false_available_rate": 0.0,
+        "confusion_matrix": [
+          [
+            0,
+            16199
+          ],
+          [
+            0,
+            16633
+          ]
+        ]
+      }
+    },
+    "LogisticRegression": {
+      "validation_threshold": 0.05,
+      "validation": {
+        "accuracy": 0.5021016081871345,
+        "balanced_accuracy": 0.5,
+        "precision_occupied": 0.5021016081871345,
+        "recall_occupied": 1.0,
+        "f1_occupied": 0.6685321491574914,
+        "roc_auc": 0.4961478760441464,
+        "pr_auc": 0.5015846749012789,
+        "brier_score": 0.250061073921384,
+        "false_available": 0,
+        "false_occupied": 16347,
+        "false_available_rate": 0.0,
+        "confusion_matrix": [
+          [
+            0,
+            16347
+          ],
+          [
+            0,
+            16485
+          ]
+        ]
+      },
+      "test": {
+        "accuracy": 0.5066094054580896,
+        "balanced_accuracy": 0.5,
+        "precision_occupied": 0.5066094054580896,
+        "recall_occupied": 1.0,
+        "f1_occupied": 0.6725159203477206,
+        "roc_auc": 0.5013167891813851,
+        "pr_auc": 0.5101150594748285,
+        "brier_score": 0.25000697447059306,
+        "false_available": 0,
+        "false_occupied": 16199,
+        "false_available_rate": 0.0,
+        "confusion_matrix": [
+          [
+            0,
+            16199
+          ],
+          [
+            0,
+            16633
+          ]
+        ]
+      }
+    },
+    "RandomForest": {
+      "validation_threshold": 0.05,
+      "validation": {
+        "accuracy": 0.5021016081871345,
+        "balanced_accuracy": 0.5,
+        "precision_occupied": 0.5021016081871345,
+        "recall_occupied": 1.0,
+        "f1_occupied": 0.6685321491574914,
+        "roc_auc": 0.4990387775848323,
+        "pr_auc": 0.5016848999996086,
+        "brier_score": 0.2501587084172045,
+        "false_available": 0,
+        "false_occupied": 16347,
+        "false_available_rate": 0.0,
+        "confusion_matrix": [
+          [
+            0,
+            16347
+          ],
+          [
+            0,
+            16485
+          ]
+        ]
+      },
+      "test": {
+        "accuracy": 0.5066094054580896,
+        "balanced_accuracy": 0.5,
+        "precision_occupied": 0.5066094054580896,
+        "recall_occupied": 1.0,
+        "f1_occupied": 0.6725159203477206,
+        "roc_auc": 0.4987808139897374,
+        "pr_auc": 0.5076278987558037,
+        "brier_score": 0.2501510120721005,
+        "false_available": 0,
+        "false_occupied": 16199,
+        "false_available_rate": 0.0,
+        "confusion_matrix": [
+          [
+            0,
+            16199
+          ],
+          [
+            0,
+            16633
+          ]
+        ]
+      }
+    },
+    "GradientBoosting": {
+      "validation_threshold": 0.05,
+      "validation": {
+        "accuracy": 0.5021016081871345,
+        "balanced_accuracy": 0.5,
+        "precision_occupied": 0.5021016081871345,
+        "recall_occupied": 1.0,
+        "f1_occupied": 0.6685321491574914,
+        "roc_auc": 0.4988992516131837,
+        "pr_auc": 0.5012409588979639,
+        "brier_score": 0.25003680045371274,
+        "false_available": 0,
+        "false_occupied": 16347,
+        "false_available_rate": 0.0,
+        "confusion_matrix": [
+          [
+            0,
+            16347
+          ],
+          [
+            0,
+            16485
+          ]
+        ]
+      },
+      "test": {
+        "accuracy": 0.5066094054580896,
+        "balanced_accuracy": 0.5,
+        "precision_occupied": 0.5066094054580896,
+        "recall_occupied": 1.0,
+        "f1_occupied": 0.6725159203477206,
+        "roc_auc": 0.5022378657570558,
+        "pr_auc": 0.5081834003885117,
+        "brier_score": 0.24996109627763471,
+        "false_available": 0,
+        "false_occupied": 16199,
+        "false_available_rate": 0.0,
+        "confusion_matrix": [
+          [
+            0,
+            16199
+          ],
+          [
+            0,
+            16633
+          ]
+        ]
+      }
+    }
+  },
+  "final_model": "RandomForest",
+  "xgboost_available": false,
+  "threshold_occupied": 0.05,
+  "threshold_available": 0.95,
+  "validation_metrics": {
+    "accuracy": 0.5021016081871345,
+    "balanced_accuracy": 0.5,
+    "precision_occupied": 0.5021016081871345,
+    "recall_occupied": 1.0,
+    "f1_occupied": 0.6685321491574914,
+    "roc_auc": 0.4990387775848323,
+    "pr_auc": 0.5016848999996086,
+    "brier_score": 0.2501587084172045,
+    "false_available": 0,
+    "false_occupied": 16347,
+    "false_available_rate": 0.0,
+    "confusion_matrix": [
+      [
+        0,
+        16347
+      ],
+      [
+        0,
+        16485
+      ]
+    ]
+  },
+  "test_metrics": {
+    "accuracy": 0.5066094054580896,
+    "balanced_accuracy": 0.5,
+    "precision_occupied": 0.5066094054580896,
+    "recall_occupied": 1.0,
+    "f1_occupied": 0.6725159203477206,
+    "roc_auc": 0.4987808139897374,
+    "pr_auc": 0.5076278987558037,
+    "brier_score": 0.2501510120721005,
+    "false_available": 0,
+    "false_occupied": 16199,
+    "false_available_rate": 0.0,
+    "confusion_matrix": [
+      [
+        0,
+        16199
+      ],
+      [
+        0,
+        16633
+      ]
+    ]
+  },
+  "feature_importances": {
+    "num__iq_spectral_peak_ratio": 0.10445046396532111,
+    "num__iq_p10": 0.09624793289824776,
+    "num__iq_peak_magnitude": 0.09531189192563223,
+    "num__iq_phase_concentration": 0.09514576284169772,
+    "num__iq_magnitude_variance": 0.09436335866859524,
+    "num__iq_crest_factor": 0.09400684298109577,
+    "num__iq_p90": 0.09355326211671379,
+    "num__iq_rms_magnitude": 0.08910987274821301,
+    "num__iq_p50": 0.08869124197714297,
+    "num__iq_spectral_entropy": 0.08133353429574486,
+    "num__bandwidth_khz": 0.037618378578597206,
+    "num__frequency_mhz": 0.02956186340359188,
+    "num__missingindicator_iq_p10": 0.0002060620556769992,
+    "num__missingindicator_iq_spectral_peak_ratio": 0.00016646117214152867,
+    "num__missingindicator_iq_phase_concentration": 7.296169167556026e-05,
+    "num__missingindicator_iq_magnitude_variance": 4.923865264701861e-05,
+    "num__missingindicator_iq_p50": 4.676759777936077e-05,
+    "num__iq_available": 3.5085837042723905e-05,
+    "num__missingindicator_iq_p90": 1.7811888029152982e-05,
+    "num__missingindicator_iq_rms_magnitude": 9.376761716044238e-06
+  },
+  "activity_thresholds_dbm": {
+    "70.0": -50.0,
+    "90.0": -50.0,
+    "100.0": -50.0,
+    "120.0": -50.0,
+    "140.0": -50.0,
+    "160.0": -50.0
+  },
+  "ood_method": "Per-feature 1st/99th percentile training bounds plus standardized multivariate Euclidean distance at the 99.75th training percentile. OOD is a conservative uncertainty flag, not a guarantee.",
+  "data_source": "RF Signal Data \u2014 real measured observations + derived I/Q features + inferred activity pseudo-label",
+  "live_rf_ingestion": false,
+  "limitations": [
+    "No native occupancy ground truth exists.",
+    "The activity target is a signal-strength-derived pseudo-label.",
+    "signal_strength_dbm is excluded from ML predictors to avoid circular target reproduction.",
+    "I/Q acquisition metadata does not verify an absolute FFT frequency axis; spectral features are normalized only.",
+    "I/Q is missing in a substantial subset and is not fabricated.",
+    "The model predicts inferred RF activity, not regulatory or guaranteed channel vacancy."
+  ]
+}

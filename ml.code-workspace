@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../wirewatcher/ml"
+		},
+		{
+			"path": "../../wirewatcher/python"
+		},
+		{
+			"path": "../../wirewatcher/training"
+		},
+		{
+			"path": "../../wirewatcher/wirewatcher"
+		}
+	]
+}

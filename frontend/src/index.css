@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Wire Watcher CSS custom properties */
+:root {
+  --color-available: 16 185 129;   /* emerald-500 */
+  --color-occupied:  239 68 68;    /* red-500 */
+  --color-warning:   245 158 11;   /* amber-500 */
+}
+
+/* Ensure all input text is sharp, high-contrast, and clearly visible */
+input, select, textarea {
+  color: #0f172a;
+}
+.dark input, .dark select, .dark textarea {
+  color: #f8fafc;
+}
+
+/* Convenience text utilities referenced in components */
+.text-available { color: rgb(var(--color-available)); }
+.text-occupied  { color: rgb(var(--color-occupied)); }
+.text-warning   { color: rgb(var(--color-warning)); }
+.bg-available\/12 { background-color: rgb(var(--color-available) / 0.12); }
+.bg-occupied\/12  { background-color: rgb(var(--color-occupied)  / 0.12); }
+.border-available\/35 { border-color: rgb(var(--color-available) / 0.35); }
+.border-occupied\/35  { border-color: rgb(var(--color-occupied)  / 0.35); }
+
+/* label-caps: small uppercase label */
+.label-caps {
+  @apply text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300;
+}
+
+/* numeric: monospaced numbers */
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* panel shared surface */
+.panel {
+  @apply rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm;
+}
