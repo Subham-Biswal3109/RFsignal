@@ -169,11 +169,12 @@ def run_prediction():
         "model_version":     metadata.get("model_version"),
         "live_rf_ingestion": False,
         # ── transparency ─────────────────────────────────────────────────────
-        "features_used":      {k: v for k, v in ml_input.items()
+        "features_used":      {k: _safe_float(v) for k, v in ml_input.items()
                                if k != "signal_strength_dbm"},
         "important_features": list(metadata.get("feature_importances", {}).keys())[:5],
     }
     return jsonify(payload), 200
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
