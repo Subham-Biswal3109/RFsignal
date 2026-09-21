@@ -15,6 +15,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { PredictionForm } from "@/components/wire/PredictionForm";
 import { PredictionResultCard } from "@/components/wire/PredictionResultCard";
 import { PredictionsTable } from "@/components/wire/PredictionsTable";
+import { ChannelAllocationView } from "@/components/wire/ChannelAllocationView";
 import { RFCalculatorView } from "@/components/calculator/RFCalculatorView";
 import { SpectrumVisualizerView } from "@/components/spectrum/SpectrumVisualizerView";
 import { RFDatasetExplorerView } from "@/components/dataset/RFDatasetExplorerView";
@@ -24,6 +25,7 @@ import type {
   PredictRequest,
   PredictResponse,
   PredictionRecord,
+  SdrStatusResponse,
 } from "@/types/wire-watcher";
 import {
   Radio,
@@ -35,14 +37,16 @@ import {
   Layers,
   Sparkles,
   Info,
+  Sliders,
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:5000";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<
-    "analyzer" | "calculator" | "simulator" | "dataset" | "ml"
+    "analyzer" | "allocation" | "calculator" | "simulator" | "dataset" | "ml"
   >("analyzer");
+
 
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<PredictResponse | null>(null);
@@ -176,6 +180,7 @@ export default function App() {
           <div className="mx-auto max-w-7xl flex overflow-x-auto gap-2 py-1.5 text-xs">
             {[
               { id: "analyzer", label: "Spectrum Availability Analyzer", icon: Radio },
+              { id: "allocation", label: "Channel Candidate Allocation", icon: Layers },
               { id: "calculator", label: "RF Engineering Calculator", icon: Calculator },
               { id: "simulator", label: "Spectrum & DSP Simulator", icon: Activity },
               { id: "dataset", label: "RF Dataset Explorer", icon: Database },
@@ -339,7 +344,10 @@ export default function App() {
           </div>
         )}
 
-        {/* ── TAB 2: RF ENGINEERING CALCULATOR SUITE ── */}
+        {/* ── TAB 2: CHANNEL CANDIDATE ALLOCATION ENGINE ── */}
+        {activeTab === "allocation" && <ChannelAllocationView />}
+
+        {/* ── TAB 3: RF ENGINEERING CALCULATOR SUITE ── */}
         {activeTab === "calculator" && <RFCalculatorView />}
 
         {/* ── TAB 3: SPECTRUM & DSP SIMULATOR ── */}

@@ -332,3 +332,59 @@ export interface JammingPredictResponse {
   correct?: boolean;
   disclaimer: string;
 }
+
+export interface ChannelCandidate {
+  candidate_id: string;
+  center_freq_mhz: number;
+  start_freq_mhz: number;
+  end_freq_mhz: number;
+  bandwidth_mhz: number;
+  bandwidth_khz: number;
+  guard_band_mhz: number;
+  activity: string;
+  availability: string;
+  ml_probability: number;
+  detector_activity?: boolean | null;
+  ood_warning: boolean;
+  noise_floor_dbm: number;
+  snr_db: number | null;
+  score: number;
+  scoring_breakdown: {
+    base_score: number;
+    activity_penalty: number;
+    noise_penalty: number;
+    ood_penalty: number;
+    uncertainty_penalty: number;
+  };
+  recommendation_status: "RECOMMENDED" | "REVIEW_REQUIRED" | "REJECTED";
+}
+
+export interface AllocationRecommendationResponse {
+  request_params: {
+    start_freq_mhz: number;
+    end_freq_mhz: number;
+    channel_bw_mhz: number;
+    guard_band_mhz: number;
+    noise_floor_dbm: number;
+    location?: string;
+  };
+  scoring_weights: Record<string, number>;
+  total_candidates: number;
+  recommended_candidate: ChannelCandidate | null;
+  has_suitable_candidate: boolean;
+  candidates: ChannelCandidate[];
+  disclaimer: string;
+}
+
+export interface SdrStatusResponse {
+  source: string;
+  provenance: string;
+  connected: boolean;
+  device: string | null;
+  center_frequency_mhz: number;
+  sample_rate_mhz: number;
+  gain: string | number;
+  buffer_size: number;
+  message: string;
+}
+

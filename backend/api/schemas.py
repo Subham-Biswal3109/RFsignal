@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, List
+from typing import Optional, List, Union
+
 
 class PredictionRequest(BaseModel):
     """Runtime contract for the RF activity/availability layer.
@@ -115,3 +116,54 @@ class JammingSampleRequest(BaseModel):
         if self.features and (not self.band or not self.scan_mode):
             raise ValueError("'band' and 'scan_mode' are required when providing 'features' directly")
         return self
+
+
+class SdrConfigRequest(BaseModel):
+    """Request schema for POST /api/sdr/configure."""
+    center_freq_mhz: Optional[float] = Field(None, gt=0, description="Center frequency in MHz (gt 0)")
+    sample_rate_mhz: Optional[float] = Field(None, ge=0.225, le=3.2, description="Sample rate in MHz [0.225, 3.2]")
+    gain: Optional[Union[float, str]] = Field(None, description="Gain in dB or 'auto'")
+    buffer_size: Optional[int] = Field(None, ge=256, le=262144, description="Capture buffer size [256, 262144]")
+
+    @model_validator(mode='after')
+    def check_gain_validity(self):
+        if self.gain is not None:
+            if isinstance(self.gain, str):
+                if self.gain.lower() != "auto":
+                    raise ValueError("String gain must be 'auto'")
+            elif isinstance(self.gain, (int, float)):
+                if not float("-inf") < float(self.gain) < float("inf"):
+                    raise ValueError("Numeric gain must be finite")
+            else:
+                raise ValueError("Gain must be a float or string 'auto'")
+        return self
+
+
+class SdrCaptureRequest(BaseModel):
+    """Request schema for POST /api/sdr/capture."""
+    num_samples: Optional[int] = Field(1024, ge=256, le=262144, description="Number of complex IQ samples to capture [256, 262144]")
+    center_freq_mhz: Optional[float] = Field(None, gt=0)
+    sample_rate_mhz: Optional[float] = Field(None, ge=0.225, le=3.2)
+    gain: Optional[Union[float, str]] = Field(None)
+
+
+class AllocationRequest(BaseModel):
+    """Request schema for POST /api/allocation/recommend."""
+    start_freq_mhz: float = Field(70.0, gt=0, description="Start frequency of analyzed band in MHz")
+    end_freq_mhz: float = Field(160.0, gt=0, description="End frequency of analyzed band in MHz")
+    channel_bw_mhz: float = Field(0.2, gt=0, description="Bandwidth of each candidate channel in MHz")
+    guard_band_mhz: float = Field(0.05, ge=0, description="Guard band between candidate channels in MHz")
+    noise_floor_dbm: float = Field(-100.0, description="Observed or estimated noise floor in dBm")
+    observed_power_dbm: Optional[float] = Field(None, description="Observed signal power in dBm")
+    location: Optional[str] = Field(None, description="Optional region/service tag")
+
+    @model_validator(mode='after')
+    def validate_range(self):
+        if self.end_freq_mhz <= self.start_freq_mhz:
+            raise ValueError("end_freq_mhz must be greater than start_freq_mhz")
+        if self.channel_bw_mhz > (self.end_freq_mhz - self.start_freq_mhz):
+            raise ValueError("channel_bw_mhz cannot exceed total frequency range")
+        return self
+
+
+

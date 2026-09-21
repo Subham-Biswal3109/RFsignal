@@ -23,7 +23,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 from sqlalchemy import text, func
 
-from backend.api.schemas import PredictionRequest
+from backend.api.schemas import PredictionRequest, SdrConfigRequest, SdrCaptureRequest, AllocationRequest
 from backend.database.connection import get_db
 from backend.database.models import AvailabilityCandidate
 from backend.services.prediction import (
@@ -32,11 +32,14 @@ from backend.services.prediction import (
     run_ml_inference,
     save_prediction_to_db,
 )
+from backend.services.allocation_service import ChannelAllocationEngine
 from backend.rf.rf_source import SimulatedRFSource
 from backend.rf.spectrum_processor import compute_fft_psd
 from backend.rf.noise_estimator import estimate_noise_floor
 from backend.rf.peak_detector import detect_peaks, get_occupied_regions
 from backend.rf.feature_extractor import extract_ml_features
+from backend.rf.sources import RFSourceFactory, RtlSdrSource
+
 
 api_bp = Blueprint("api_bp", __name__)
 
@@ -380,6 +383,137 @@ def analyze_spectrum():
         return jsonify({"error": "Spectrum analysis failed", "details": str(exc)}), 500
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RTL-SDR & RF Sources Endpoints (Phase 4A)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_sdr_instance = RtlSdrSource()
+
+
+@api_bp.route("/api/sdr/status", methods=["GET"])
+def get_sdr_status():
+    """Return status of physical RTL-SDR hardware adapter."""
+    return jsonify(_sdr_instance.get_status()), 200
+
+
+@api_bp.route("/api/sdr/configure", methods=["POST"])
+def configure_sdr():
+    """Configure RTL-SDR hardware parameters (center_freq_mhz, sample_rate_mhz, gain, buffer_size)."""
+    try:
+        req_data = SdrConfigRequest(**(request.json or {}))
+    except ValidationError as exc:
+        return jsonify({"error": "Invalid SDR configuration parameters", "details": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": "Invalid JSON payload", "details": str(exc)}), 400
+
+    try:
+        updated = _sdr_instance.configure(
+            center_freq_mhz=req_data.center_freq_mhz,
+            sample_rate_mhz=req_data.sample_rate_mhz,
+            gain=req_data.gain,
+            buffer_size=req_data.buffer_size,
+        )
+        status = _sdr_instance.get_status()
+        status["configuration"] = updated
+        return jsonify(status), 200
+    except ValueError as exc:
+        return jsonify({"error": "Configuration rejected", "details": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": "SDR configuration failed", "details": str(exc)}), 500
+
+
+@api_bp.route("/api/sdr/capture", methods=["POST"])
+def capture_sdr_iq():
+    """Capture a controlled finite IQ sample buffer from physical RTL-SDR hardware.
+
+    Returns HTTP 503 if hardware is unavailable. Zero fake data generated.
+    """
+    if not _sdr_instance.is_available():
+        return jsonify({
+            "error": "RTL-SDR hardware unavailable",
+            "connected": False,
+            "message": _sdr_instance.get_status()["message"],
+            "provenance": "REAL_SDR",
+        }), 503
+
+    try:
+        req_data = SdrCaptureRequest(**(request.json or {}))
+    except ValidationError as exc:
+        return jsonify({"error": "Invalid capture request", "details": str(exc)}), 400
+
+    try:
+        obs = _sdr_instance.get_observation(
+            center_freq_mhz=req_data.center_freq_mhz,
+            sample_rate_mhz=req_data.sample_rate_mhz,
+            gain=req_data.gain,
+            num_samples=req_data.num_samples,
+        )
+        return jsonify({
+            "status": "success",
+            "observation": obs.to_dict(),
+        }), 200
+    except Exception as exc:
+        return jsonify({"error": "IQ capture failed", "details": str(exc)}), 500
+
+
+@api_bp.route("/api/sources", methods=["GET"])
+def list_rf_sources():
+    """List all supported RF sources and their operational status."""
+    return jsonify({
+        "sources": RFSourceFactory.list_sources()
+    }), 200
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Channel Allocation & Recommendation Endpoints (Full Integration Phase)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_bp.route("/api/allocation/recommend", methods=["POST"])
+def recommend_channel_allocation():
+    """Generate candidate channels across a frequency band, score them, and return allocation recommendations."""
+    try:
+        req_data = AllocationRequest(**(request.json or {}))
+    except ValidationError as exc:
+        return jsonify({"error": "Invalid allocation request parameters", "details": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": "Invalid JSON format", "details": str(exc)}), 400
+
+    try:
+        res = ChannelAllocationEngine.generate_and_score_candidates(
+            start_freq_mhz=req_data.start_freq_mhz,
+            end_freq_mhz=req_data.end_freq_mhz,
+            channel_bw_mhz=req_data.channel_bw_mhz,
+            guard_band_mhz=req_data.guard_band_mhz,
+            noise_floor_dbm=req_data.noise_floor_dbm,
+            observed_power_dbm=req_data.observed_power_dbm,
+            location=req_data.location,
+        )
+        return jsonify(res), 200
+    except ValueError as exc:
+        return jsonify({"error": "Allocation calculation failed", "details": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": "Channel allocation engine failed", "details": str(exc)}), 500
+
+
+@api_bp.route("/api/allocation/config", methods=["GET"])
+def get_allocation_config():
+    """Return allocation engine configuration and scoring formula weights."""
+    return jsonify({
+        "scoring_weights": {
+            "base_score": 100.0,
+            "occupied_penalty": 50.0,
+            "ood_penalty": 40.0,
+            "uncertainty_penalty": 25.0,
+            "noise_baseline_dbm": -100.0,
+            "noise_penalty_weight": 1.5,
+            "max_noise_penalty": 30.0,
+            "min_recommendation_score": 50.0,
+        },
+        "disclaimer": "Engineering availability assessment and allocation recommendation. Not a legal or regulatory transmission license.",
+    }), 200
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Utilities
 # ─────────────────────────────────────────────────────────────────────────────
@@ -392,3 +526,5 @@ def _safe_float(value) -> float | None:
         return None if (np.isnan(f) or np.isinf(f)) else f
     except (TypeError, ValueError):
         return None
+
+
