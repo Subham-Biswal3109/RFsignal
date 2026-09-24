@@ -7,8 +7,9 @@
  *   - Visual Multi-Stage Decision Hierarchy (RF Detector + DSP Features + ML Classifier + OOD Safeguard)
  */
 
-import React from "react";
+import React, { useState } from "react";
 import { Panel } from "@/components/wire/Panel";
+import { MLPerformanceDashboard } from "@/components/ml/MLPerformanceDashboard";
 import {
   Cpu,
   GitBranch,
@@ -22,9 +23,13 @@ import {
   Layers,
   ArrowRight,
   Info,
+  Activity,
+  Award,
 } from "lucide-react";
 
 export function MLArchitectureView() {
+  const [activeTab, setActiveTab] = useState<"audit" | "architecture">("audit");
+
   const modelComparison = [
     {
       name: "DummyClassifier (Baseline)",
@@ -76,24 +81,55 @@ export function MLArchitectureView() {
     <div className="space-y-6">
       {/* Header Banner */}
       <div className="rounded-xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 p-5">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-lg bg-purple-600 text-white shadow-sm shrink-0">
-            <Cpu className="size-6" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-lg bg-purple-600 text-white shadow-sm shrink-0">
+              <Cpu className="size-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                ML & Decision Architecture Engine
+                <span className="text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300 font-mono border border-purple-200 dark:border-purple-800">
+                  Leakage-Safe Architecture
+                </span>
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-3xl">
+                Explains how RF activity detection, statistical I/Q digital signal processing, machine learning evidence,
+                and multivariate out-of-distribution (OOD) gating unite into an operational availability decision.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              ML & Decision Architecture Engine
-              <span className="text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300 font-mono border border-purple-200 dark:border-purple-800">
-                Leakage-Safe Architecture
-              </span>
-            </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-3xl">
-              Explains how RF activity detection, statistical I/Q digital signal processing, machine learning evidence,
-              and multivariate out-of-distribution (OOD) gating unite into an operational availability decision.
-            </p>
+
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-200/80 dark:bg-slate-900 shrink-0 font-mono text-xs">
+            <button
+              onClick={() => setActiveTab("audit")}
+              className={`px-3 py-1.5 rounded-md font-bold transition-all ${
+                activeTab === "audit"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              }`}
+            >
+              ML Audit & Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab("architecture")}
+              className={`px-3 py-1.5 rounded-md font-bold transition-all ${
+                activeTab === "architecture"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              }`}
+            >
+              Decision Flow
+            </button>
           </div>
         </div>
       </div>
+
+      {activeTab === "audit" ? (
+        <MLPerformanceDashboard />
+      ) : (
+        <React.Fragment>
 
       {/* Decision Hierarchy Flowchart */}
       <Panel
@@ -222,6 +258,8 @@ export function MLArchitectureView() {
           </p>
         </div>
       </div>
+        </React.Fragment>
+      )}
     </div>
   );
 }

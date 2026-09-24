@@ -266,3 +266,128 @@ def test_predictions_stored_after_predict(client):
     assert resp.status_code == 200
     data = resp.get_json()
     assert len(data["predictions"]) >= 1
+
+
+def test_spectrum_analyze_endpoint(client):
+    """POST /api/spectrum/analyze returns spectrum data and features."""
+    payload = {
+        "center_freq_mhz": 120.0,
+        "bandwidth_mhz": 10.0,
+        "signal_strength_dbm": -60.0,
+        "noise_floor_dbm": -100.0,
+    }
+    resp = client.post(
+        "/api/spectrum/analyze",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "spectrum_data" in data
+    assert "frequencies" in data["spectrum_data"]
+    assert "power_dbm" in data["spectrum_data"]
+    assert "noise_floor_dbm" in data
+    assert "detected_signals" in data
+    assert "extracted_features" in data
+    assert len(data["spectrum_data"]["frequencies"]) > 0
+
+
+def test_spectrum_analyze_invalid_body(client):
+    """POST /api/spectrum/analyze with invalid data returns JSON 400 error."""
+    resp = client.post(
+        "/api/spectrum/analyze",
+        data="invalid json",
+        content_type="application/json",
+    )
+    assert resp.status_code == 400
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "error" in data
+
+
+def test_allocation_recommend_endpoint(client):
+    """POST /api/allocation/recommend returns structured allocation candidates."""
+    payload = {
+        "start_freq_mhz": 70.0,
+        "end_freq_mhz": 160.0,
+        "channel_bw_mhz": 0.2,
+        "guard_band_mhz": 0.05,
+        "noise_floor_dbm": -100.0,
+        "observed_power_dbm": -75.0,
+    }
+    resp = client.post(
+        "/api/allocation/recommend",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "recommended_candidate" in data
+    assert "candidates" in data or "candidate_channels" in data
+    candidates_list = data.get("candidates") or data.get("candidate_channels")
+    assert isinstance(candidates_list, list)
+    assert len(candidates_list) > 0
+
+
+def test_allocation_recommend_invalid_body(client):
+    """POST /api/allocation/recommend with invalid payload returns JSON 400 error."""
+    resp = client.post(
+        "/api/allocation/recommend",
+        data=json.dumps({"start_freq_mhz": "invalid"}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 400
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "error" in data
+
+
+def test_rf_waveform_endpoint(client):
+    """GET /api/rf/waveform returns waveform response."""
+    resp = client.get("/api/rf/waveform")
+    assert resp.status_code == 200
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "iq_available" in data
+    assert "provenance" in data
+
+
+def test_analytics_events_endpoint(client):
+    """GET /api/analytics/events returns events summary."""
+    resp = client.get("/api/analytics/events")
+    assert resp.status_code == 200
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "total_rf_events" in data
+    assert "events" in data
+
+
+def test_analytics_utilization_endpoint(client):
+    """GET /api/analytics/utilization returns channel utilization."""
+    resp = client.get("/api/analytics/utilization")
+    assert resp.status_code == 200
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "utilization_percentage" in data or "utilization_status" in data
+
+
+def test_technical_report_endpoint(client):
+    """GET /api/report/rf-analysis returns 10-section report."""
+    resp = client.get("/api/report/rf-analysis?frequency_mhz=120.0&signal_power_dbm=-75.0&noise_floor_dbm=-100.0")
+    assert resp.status_code == 200
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "sections" in data
+    assert "10_limitations" in data["sections"]
+
+
+def test_404_error_returns_json(client):
+    """Unmatched route returns JSON 404 error, not HTML."""
+    resp = client.get("/api/nonexistent-endpoint")
+    assert resp.status_code == 404
+    assert resp.content_type == "application/json"
+    data = resp.get_json()
+    assert "error" in data
+

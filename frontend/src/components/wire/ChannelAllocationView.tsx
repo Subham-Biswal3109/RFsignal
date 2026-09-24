@@ -2,10 +2,11 @@
  * Wire Watcher — RF Spectrum Channel Allocation & Engineering Scoring View
  *
  * Demonstrates:
- *   - Engineering channel candidate generation across an analyzed VHF band
- *   - Transparent scoring formula: Score = 100 - ActivityPenalty - NoisePenalty - OODPenalty - UncertaintyPenalty
+ *   - Visual Channel Allocation Heatmap across analyzed VHF band
+ *   - Engineering channel candidate generation
+ *   - Transparent scoring formula with Guard Band & Interference Risk analysis
  *   - Recommended Candidate Channel callout ("RECOMMENDED CANDIDATE" or "NO SUITABLE CANDIDATE")
- *   - Sortable Candidate Channels Table with data provenance tags
+ *   - Sortable Candidate Channels Table with data provenance tags & Calculation Trace Modal
  */
 
 import React, { useState, useEffect } from "react";
@@ -22,12 +23,16 @@ import {
   ArrowUpDown,
   Info,
   RefreshCw,
+  Calculator,
 } from "lucide-react";
 import type {
   AllocationRecommendationResponse,
   ChannelCandidate,
 } from "@/types/wire-watcher";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
+import { ChannelAllocationHeatmap } from "./ChannelAllocationHeatmap";
+import { CalculationTraceModal } from "./CalculationTraceModal";
 
 export function ChannelAllocationView() {
   const [startFreqMhz, setStartFreqMhz] = useState<number>(70.0);
@@ -43,13 +48,15 @@ export function ChannelAllocationView() {
   const [sortField, setSortField] = useState<"score" | "center_freq_mhz">("score");
   const [sortAsc, setSortAsc] = useState<boolean>(false);
 
+  const [selectedCandidate, setSelectedCandidate] = useState<ChannelCandidate | null>(null);
+  const [traceCandidate, setTraceCandidate] = useState<ChannelCandidate | null>(null);
+
   const fetchAllocation = async () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await fetch("/api/allocation/recommend", {
+      const json = await apiFetch<AllocationRecommendationResponse>("/api/allocation/recommend", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           start_freq_mhz: startFreqMhz,
           end_freq_mhz: endFreqMhz,
@@ -59,12 +66,10 @@ export function ChannelAllocationView() {
           observed_power_dbm: observedPowerDbm,
         }),
       });
-      if (!resp.ok) {
-        const errJson = await resp.json();
-        throw new Error(errJson.error || errJson.details || "Allocation engine request failed");
-      }
-      const json: AllocationRecommendationResponse = await resp.json();
       setData(json);
+      if (json.recommended_candidate) {
+        setSelectedCandidate(json.recommended_candidate);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to calculate channel allocation");
     } finally {
@@ -106,14 +111,13 @@ export function ChannelAllocationView() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                RF Spectrum Channel Allocation & Transparent Candidate Scoring
+                RF Spectrum Channel Allocation & Engineering Intelligence Layer
                 <span className="text-xs px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 font-mono border border-indigo-200 dark:border-indigo-800">
-                  Engineering Layer
+                  Engineering Assessment
                 </span>
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-3xl">
-                Divides analyzed spectrum bands into candidate channels, evaluates observed RF activity, applies transparent penalty scoring,
-                and recommends optimal candidate channels.
+                Divides analyzed spectrum bands into candidate channels, evaluates guard-band protected margins, calculates transparent interference metrics, and provides explainable calculation traces.
               </p>
             </div>
           </div>
@@ -217,6 +221,18 @@ export function ChannelAllocationView() {
         </div>
       </Panel>
 
+      {/* Visual Channel Allocation Heatmap */}
+      {data && (
+        <ChannelAllocationHeatmap
+          candidates={data.candidates}
+          recommendedCandidate={data.recommended_candidate}
+          selectedCandidate={selectedCandidate}
+          onSelectCandidate={(cand) => setSelectedCandidate(cand)}
+          startFreqMhz={startFreqMhz}
+          endFreqMhz={endFreqMhz}
+        />
+      )}
+
       {error && (
         <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 p-4 text-xs text-red-700 dark:text-red-300 font-mono">
           <strong>Allocation Engine Error:</strong> {error}
@@ -250,7 +266,7 @@ export function ChannelAllocationView() {
                     RECOMMENDED CANDIDATE: {data.recommended_candidate.center_freq_mhz} MHz
                   </h3>
                   <p className="text-xs mt-1 text-slate-700 dark:text-slate-300 max-w-2xl font-sans">
-                    Optimal candidate channel identified. Lowest observed RF activity, acceptable noise floor, and clean in-distribution safety status.
+                    Optimal candidate channel identified. Lowest observed RF activity, safe guard-band margin, low interference risk, and clean safety status.
                   </p>
                 </>
               ) : (
@@ -270,45 +286,16 @@ export function ChannelAllocationView() {
                 <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                   Score: {data.recommended_candidate.score} / 100
                 </div>
-                <div className="text-[11px] text-slate-600 dark:text-slate-400">
-                  Bandwidth: {data.recommended_candidate.bandwidth_khz} kHz (Guard: {data.recommended_candidate.guard_band_mhz * 1000} kHz)
-                </div>
+                <button
+                  onClick={() => setTraceCandidate(data.recommended_candidate)}
+                  className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded shadow transition"
+                >
+                  <Calculator className="w-3.5 h-3.5" />
+                  <span>View Calculation Trace</span>
+                </button>
               </div>
             )}
           </div>
-
-          {/* Breakdown for Recommended Candidate */}
-          {data.recommended_candidate && (
-            <div className="mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-800/80 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="p-3 rounded bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] text-slate-500 uppercase font-bold">Frequency Range</div>
-                <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  {data.recommended_candidate.start_freq_mhz} - {data.recommended_candidate.end_freq_mhz} MHz
-                </div>
-              </div>
-
-              <div className="p-3 rounded bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] text-slate-500 uppercase font-bold">RF Activity State</div>
-                <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                  {data.recommended_candidate.activity} ({data.recommended_candidate.availability})
-                </div>
-              </div>
-
-              <div className="p-3 rounded bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] text-slate-500 uppercase font-bold">Noise & SNR</div>
-                <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
-                  {data.recommended_candidate.noise_floor_dbm} dBm (SNR: +{data.recommended_candidate.snr_db} dB)
-                </div>
-              </div>
-
-              <div className="p-3 rounded bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] text-slate-500 uppercase font-bold">OOD Guard Status</div>
-                <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                  PASS (In-Distribution)
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -334,7 +321,8 @@ export function ChannelAllocationView() {
                   <th className="p-3">Bandwidth</th>
                   <th className="p-3">RF Activity</th>
                   <th className="p-3">Noise Floor</th>
-                  <th className="p-3">SNR</th>
+                  <th className="p-3">Interference</th>
+                  <th className="p-3">Guard Band</th>
                   <th className="p-3">OOD</th>
                   <th
                     className="p-3 cursor-pointer hover:text-slate-900 dark:hover:text-slate-100"
@@ -344,7 +332,7 @@ export function ChannelAllocationView() {
                       Score <ArrowUpDown className="size-3" />
                     </div>
                   </th>
-                  <th className="p-3">Recommendation</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -356,11 +344,12 @@ export function ChannelAllocationView() {
                       key={c.candidate_id}
                       className={cn(
                         "hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors",
-                        isRec && "bg-emerald-50/40 dark:bg-emerald-950/20 font-semibold"
+                        isRec && "bg-emerald-50/40 dark:bg-emerald-950/20 font-semibold",
+                        selectedCandidate?.candidate_id === c.candidate_id && "ring-1 ring-cyan-400 bg-slate-900"
                       )}
                     >
                       <td className="p-3 font-bold text-slate-700 dark:text-slate-300">{c.candidate_id}</td>
-                      <td className="p-3 text-sky-600 dark:text-sky-400 font-bold">{c.center_freq_mhz} MHz</td>
+                      <td className="p-3 text-sky-600 dark:text-sky-400 font-bold">{c.center_freq_mhz.toFixed(3)} MHz</td>
                       <td className="p-3 text-slate-600 dark:text-slate-400">{c.bandwidth_khz} kHz</td>
                       <td className="p-3 font-bold">
                         <span
@@ -377,8 +366,14 @@ export function ChannelAllocationView() {
                         </span>
                       </td>
                       <td className="p-3 text-slate-700 dark:text-slate-300">{c.noise_floor_dbm} dBm</td>
-                      <td className="p-3 text-slate-700 dark:text-slate-300">
-                        {c.snr_db !== null ? `+${c.snr_db} dB` : "—"}
+                      <td className="p-3 font-semibold text-slate-300">{c.interference_risk || "LOW"}</td>
+                      <td className="p-3">
+                        <span className={cn(
+                          "px-1.5 py-0.5 rounded text-[10px]",
+                          c.guard_band_status === "CONFLICT" ? "bg-rose-950 text-rose-300" : (c.guard_band_status === "MARGINAL" ? "bg-amber-950 text-amber-300" : "bg-emerald-950 text-emerald-300")
+                        )}>
+                          {c.guard_band_status || "SAFE_MARGIN"}
+                        </span>
                       </td>
                       <td className="p-3">
                         {c.ood_warning ? (
@@ -388,21 +383,15 @@ export function ChannelAllocationView() {
                         )}
                       </td>
                       <td className="p-3 font-bold text-slate-900 dark:text-slate-100 text-sm">
-                        {c.score}
+                        {c.score.toFixed(1)}
                       </td>
-                      <td className="p-3">
-                        <span
-                          className={cn(
-                            "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider",
-                            isRec
-                              ? "bg-emerald-600 text-white"
-                              : isRej
-                              ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
-                              : "bg-amber-500 text-white"
-                          )}
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => setTraceCandidate(c)}
+                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[10px] font-mono rounded border border-slate-700 transition"
                         >
-                          {c.recommendation_status}
-                        </span>
+                          View Trace
+                        </button>
                       </td>
                     </tr>
                   );
@@ -413,37 +402,11 @@ export function ChannelAllocationView() {
         </Panel>
       )}
 
-      {/* Engineering Scoring Formula Reference */}
-      <Panel
-        title="Candidate Channel Scoring Formula Rationale"
-        subtitle="Transparent weight parameters used by the Channel Allocation Engine."
-      >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 font-mono text-xs">
-          <div className="p-3 rounded border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Base Candidate Score</div>
-            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">100.0 Points</div>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-sans mt-1">Starting reference for clear spectrum.</p>
-          </div>
-
-          <div className="p-3 rounded border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Occupied Activity Penalty</div>
-            <div className="text-lg font-bold text-red-600 dark:text-red-400 mt-0.5">-50.0 Points</div>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-sans mt-1">Deducted if RF activity is DETECTED.</p>
-          </div>
-
-          <div className="p-3 rounded border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Out-of-Distribution Penalty</div>
-            <div className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-0.5">-40.0 Points</div>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-sans mt-1">Deducted if input parameters trigger OOD bounds.</p>
-          </div>
-
-          <div className="p-3 rounded border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Uncertainty Penalty</div>
-            <div className="text-lg font-bold text-purple-600 dark:text-purple-400 mt-0.5">-25.0 Points</div>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-sans mt-1">Deducted when observation evidence is ambiguous.</p>
-          </div>
-        </div>
-      </Panel>
+      {/* Trace Modal */}
+      <CalculationTraceModal
+        candidate={traceCandidate}
+        onClose={() => setTraceCandidate(null)}
+      />
     </div>
   );
 }

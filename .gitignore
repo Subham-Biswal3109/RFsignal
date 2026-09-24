@@ -24,3 +24,8 @@ ENV/
 Thumbs.db
 .vscode/
 .idea/
+
+# Scratch & Databases
+scratch/
+*.db
+

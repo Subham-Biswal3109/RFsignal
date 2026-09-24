@@ -1,14 +1,16 @@
 /// <reference types="vite/client" />
 /**
  * Wire Watcher — Electronics & Communications Engineering (ECE)
- * RF Spectrum Monitoring and Availability Analysis System
+ * RF Spectrum Monitoring, Analysis & Decision System
  *
- * Primary Modules:
- *  1. Spectrum Availability Analyzer (Prediction Form + Engineering Observation Card + History)
- *  2. RF Engineering Calculator (Power, Wavelength, Bandwidth, Nyquist, Thermal Noise, SNR, FSPL, Link Budget)
- *  3. Spectrum & DSP Simulator (FFT, PSD Plot, Peak Detection, Adaptive Thresholding)
- *  4. RF Dataset Explorer (Real 164,160 observations, VHF frequencies, I/Q statistics)
- *  5. ML & Decision Engine (Model comparison, leakage protection, multi-stage decision pipeline)
+ * 7-Module Clean Architecture:
+ *  1. Dashboard Summary (High-level telemetry card grid & system state)
+ *  2. RF Monitor (Spectrum Observation Ingestion, Time-Domain I/Q Waveform, Spectrum/PSD Visualizer)
+ *  3. Availability & Channel Allocation (Availability Decision Engine, Allocation Heatmap, Candidate Table)
+ *  4. RF Events & Utilization (Recorded Event History & Temporal Channel Utilization Timeline)
+ *  5. RF Engineering (Calculator Suite with step-by-step mathematical trace modals)
+ *  6. Data & Replay (RF Dataset Explorer & Controlled Historical Replay Mode)
+ *  7. ML & Decision Engine (Random Forest Model Architecture, OOD Guard, Data Provenance Matrix)
  */
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -21,32 +23,45 @@ import { SpectrumVisualizerView } from "@/components/spectrum/SpectrumVisualizer
 import { RFDatasetExplorerView } from "@/components/dataset/RFDatasetExplorerView";
 import { MLArchitectureView } from "@/components/ml/MLArchitectureView";
 
+import { DashboardSummaryView } from "@/components/wire/DashboardSummaryView";
+import { TimeDomainWaveformView } from "@/components/wire/TimeDomainWaveformView";
+import { RFEventAnalyticsView } from "@/components/wire/RFEventAnalyticsView";
+import { RFTechnicalReportView } from "@/components/wire/RFTechnicalReportView";
+import { ReplayControllerView } from "@/components/wire/ReplayControllerView";
+import { SourceComparisonTable } from "@/components/wire/SourceComparisonTable";
+
 import type {
   PredictRequest,
   PredictResponse,
   PredictionRecord,
-  SdrStatusResponse,
 } from "@/types/wire-watcher";
 import {
+  LayoutDashboard,
   Radio,
+  Layers,
+  BarChart2,
   Calculator,
-  Activity,
   Database,
   Cpu,
   RefreshCw,
-  Layers,
-  Sparkles,
-  Info,
-  Sliders,
+  FileText,
+  Film,
+  ShieldCheck,
+  Activity,
 } from "lucide-react";
-
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:5000";
+import { apiFetch } from "@/lib/api";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<
-    "analyzer" | "allocation" | "calculator" | "simulator" | "dataset" | "ml"
-  >("analyzer");
-
+    | "dashboard"
+    | "monitor"
+    | "allocation"
+    | "events"
+    | "calculator"
+    | "data"
+    | "ml"
+    | "report"
+  >("dashboard");
 
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<PredictResponse | null>(null);
@@ -60,9 +75,7 @@ export default function App() {
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const resp = await fetch(`${API_BASE}/api/predictions`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
+      const data = await apiFetch<any>("/api/predictions");
       const predictions: PredictionRecord[] = (data.predictions ?? []).map(
         (row: Record<string, unknown>) => ({
           id: String(row.id ?? ""),
@@ -103,17 +116,11 @@ export default function App() {
       setResult(null);
       setRequest(input);
       try {
-        const resp = await fetch(`${API_BASE}/api/predict`, {
+        const data = await apiFetch<PredictResponse>("/api/predict", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(input),
         });
-        const data = await resp.json();
-        if (!resp.ok) {
-          setError(data.error ?? `HTTP ${resp.status}`);
-          return;
-        }
-        setResult(data as PredictResponse);
+        setResult(data);
         setReceivedAt(new Date().toISOString());
         fetchHistory();
       } catch (err) {
@@ -128,7 +135,7 @@ export default function App() {
   // ── handle transfer from simulator to analyzer ────────────────────────────
   const handleTransferFromSimulator = useCallback(
     (simRequest: PredictRequest) => {
-      setActiveTab("analyzer");
+      setActiveTab("monitor");
       handleSubmit(simRequest);
     },
     [handleSubmit],
@@ -149,16 +156,16 @@ export default function App() {
                   WIRE WATCHER
                 </h1>
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 font-mono border border-sky-200 dark:border-sky-800">
-                  RF Activity v2
+                  RF System v2.0
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-medium">
-                ECE RF Spectrum Monitoring, Analysis & Decision System
+                RF Spectrum Monitoring, Time-Domain Waveform & Channel Allocation System
               </p>
             </div>
           </div>
 
-          {/* Instrument Telemetry Badges */}
+          {/* Telemetry Badges */}
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
             <div className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -179,12 +186,14 @@ export default function App() {
         <div className="border-t border-slate-200 dark:border-slate-800 px-4 bg-slate-50/70 dark:bg-slate-900/50">
           <div className="mx-auto max-w-7xl flex overflow-x-auto gap-2 py-1.5 text-xs">
             {[
-              { id: "analyzer", label: "Spectrum Availability Analyzer", icon: Radio },
-              { id: "allocation", label: "Channel Candidate Allocation", icon: Layers },
+              { id: "dashboard", label: "Dashboard Summary", icon: LayoutDashboard },
+              { id: "monitor", label: "RF Monitor & Waveform", icon: Radio },
+              { id: "allocation", label: "Availability & Channel Allocation", icon: Layers },
+              { id: "events", label: "RF Events & Utilization", icon: BarChart2 },
               { id: "calculator", label: "RF Engineering Calculator", icon: Calculator },
-              { id: "simulator", label: "Spectrum & DSP Simulator", icon: Activity },
-              { id: "dataset", label: "RF Dataset Explorer", icon: Database },
+              { id: "data", label: "Data Explorer & Replay", icon: Database },
               { id: "ml", label: "ML & Decision Engine", icon: Cpu },
+              { id: "report", label: "Technical Analysis Report", icon: FileText },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -209,96 +218,42 @@ export default function App() {
 
       {/* ── MAIN CONTENT AREA ────────────────────────────────────────────────── */}
       <main className="mx-auto max-w-7xl w-full p-4 sm:p-6 space-y-8 flex-1">
-        {/* ── TAB 1: SPECTRUM AVAILABILITY ANALYZER (HOME SCREEN) ── */}
-        {activeTab === "analyzer" && (
+        {/* MODULE 1: DASHBOARD SUMMARY */}
+        {activeTab === "dashboard" && (
+          <DashboardSummaryView onNavigateTab={(tab) => setActiveTab(tab as any)} />
+        )}
+
+        {/* MODULE 2: RF MONITOR & WAVEFORM */}
+        {activeTab === "monitor" && (
           <div className="space-y-8">
-            {/* Home Hero Banner */}
-            <div className="rounded-xl border border-sky-300 dark:border-sky-800 bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 text-white p-6 shadow-md">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px] font-mono font-bold tracking-wider uppercase border border-sky-400/30">
-                      ECE / RF ENGINEERING INSTRUMENT
-                    </span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black font-mono tracking-tight mt-1.5 text-white">
-                    WIRE WATCHER
-                  </h1>
-                  <h2 className="text-base sm:text-lg font-bold font-mono text-sky-400 tracking-wide mt-0.5">
-                    RF SPECTRUM MONITORING & AVAILABILITY ANALYSIS
-                  </h2>
-                  <p className="text-xs text-slate-300 max-w-2xl mt-2 leading-relaxed">
-                    Digital signal processing, physical channel activity detection, Johnson-Nyquist thermal noise evaluation,
-                    and out-of-distribution (OOD) safety gating for VHF spectrum availability.
-                  </p>
-                </div>
-
-                {/* Live / Current Telemetry Summary Card */}
-                <div className="p-3.5 rounded-lg bg-slate-950/80 border border-sky-500/30 font-mono text-xs space-y-2 shrink-0 min-w-[260px]">
-                  <div className="text-[10px] uppercase font-bold text-sky-400 flex items-center justify-between border-b border-slate-800 pb-1.5">
-                    <span className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Live Spectrum Status
-                    </span>
-                    <span className="text-[9px] text-slate-400">REAL-TIME</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div>
-                      <span className="text-slate-400 block text-[9px] uppercase">Frequency</span>
-                      <span className="font-bold text-white">{request ? `${request.frequency_mhz} MHz` : "120.0 MHz"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[9px] uppercase">Bandwidth</span>
-                      <span className="font-bold text-white">{request ? `${request.bandwidth_khz} kHz` : "50 kHz"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[9px] uppercase">Signal Power</span>
-                      <span className="font-bold text-white">{request ? `${request.signal_strength_dbm} dBm` : "-60.0 dBm"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[9px] uppercase">RF Activity</span>
-                      <span className={`font-bold ${result?.activity === "DETECTED" ? "text-red-400" : "text-emerald-400"}`}>
-                        {result?.activity ?? "NOT DETECTED"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between">
-                    <span className="text-slate-400 text-[10px]">Decision:</span>
-                    <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${
-                      result?.availability === "AVAILABLE" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" :
-                      result?.availability === "OCCUPIED" ? "bg-red-500/20 text-red-300 border border-red-500/40" :
-                      "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                    }`}>
-                      {result?.availability ?? "AVAILABLE"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Input Form Section */}
             <section>
               <div className="mb-4">
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Radio className="size-4 text-sky-600" />
-                  RF Spectrum Observation Ingestion
+                  RF Spectrum Observation Ingestion & Availability Sensing
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Enter real measured carrier frequency, bandwidth, and received signal strength.
-                  Optional digital signal processing (DSP) I/Q envelope statistics can be provided when complex samples exist.
-                </p>
               </div>
               <PredictionForm onSubmit={handleSubmit} pending={pending} />
             </section>
 
-            {/* Error Banner */}
             {error && (
               <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/40 p-4 text-xs text-red-700 dark:text-red-300">
                 <strong>Error:</strong> {error}
               </div>
             )}
 
-            {/* Prediction / Analysis Result Card */}
+            {/* TIME-DOMAIN I/Q WAVEFORM VISUALIZER */}
+            <TimeDomainWaveformView
+              centerFreqMhz={request?.frequency_mhz ?? 120.0}
+              bandwidthMhz={(request?.bandwidth_khz ?? 200) / 1000.0}
+              signalPowerDbm={request?.signal_strength_dbm ?? -75.0}
+              noiseFloorDbm={-100.0}
+              iqAvailable={request?.iq_available ?? 1}
+            />
+
+            {/* SPECTRUM & DSP SIMULATOR */}
+            <SpectrumVisualizerView onSendToAnalyzer={handleTransferFromSimulator} />
+
             {result && request && (
               <section className="space-y-2">
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
@@ -312,16 +267,12 @@ export default function App() {
               </section>
             )}
 
-            {/* Prediction History Table */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                     Spectrum Availability Assessment History
                   </h2>
-                  <p className="text-xs text-slate-500">
-                    Recent records persisted in SQLite (<code className="font-mono">wire_watcher.db</code>).
-                  </p>
                 </div>
                 <button
                   onClick={fetchHistory}
@@ -344,25 +295,32 @@ export default function App() {
           </div>
         )}
 
-        {/* ── TAB 2: CHANNEL CANDIDATE ALLOCATION ENGINE ── */}
+        {/* MODULE 3: AVAILABILITY & CHANNEL ALLOCATION */}
         {activeTab === "allocation" && <ChannelAllocationView />}
 
-        {/* ── TAB 3: RF ENGINEERING CALCULATOR SUITE ── */}
+        {/* MODULE 4: RF EVENTS & UTILIZATION */}
+        {activeTab === "events" && <RFEventAnalyticsView />}
+
+        {/* MODULE 5: RF ENGINEERING CALCULATOR */}
         {activeTab === "calculator" && <RFCalculatorView />}
 
-        {/* ── TAB 3: SPECTRUM & DSP SIMULATOR ── */}
-        {activeTab === "simulator" && (
-          <SpectrumVisualizerView onSendToAnalyzer={handleTransferFromSimulator} />
+        {/* MODULE 6: DATA EXPLORER & REPLAY */}
+        {activeTab === "data" && (
+          <div className="space-y-8">
+            <ReplayControllerView />
+            <SourceComparisonTable />
+            <RFDatasetExplorerView />
+          </div>
         )}
 
-        {/* ── TAB 4: RF DATASET EXPLORER ── */}
-        {activeTab === "dataset" && <RFDatasetExplorerView />}
-
-        {/* ── TAB 5: ML & DECISION ENGINE ── */}
+        {/* MODULE 7: ML & DECISION ENGINE */}
         {activeTab === "ml" && <MLArchitectureView />}
+
+        {/* REPORT TAB */}
+        {activeTab === "report" && <RFTechnicalReportView />}
       </main>
 
-      {/* ── FOOTER ───────────────────────────────────────────────────────────── */}
+      {/* FOOTER */}
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-xs text-slate-500">
         <div className="mx-auto max-w-7xl px-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 font-mono text-[11px]">
           <div>

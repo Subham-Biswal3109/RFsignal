@@ -18,6 +18,9 @@ Data-provenance note
 • The system does NOT claim ground-truth occupancy or live SDR monitoring.
 """
 from __future__ import annotations
+import json
+from pathlib import Path
+from datetime import datetime, timezone
 import numpy as np
 from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
@@ -39,6 +42,11 @@ from backend.rf.noise_estimator import estimate_noise_floor
 from backend.rf.peak_detector import detect_peaks, get_occupied_regions
 from backend.rf.feature_extractor import extract_ml_features
 from backend.rf.sources import RFSourceFactory, RtlSdrSource
+from backend.rf.event_detector import get_rf_event_summary
+from backend.services.occupancy_service import calculate_channel_utilization
+from backend.rf.replay_controller import RFReplayController
+from backend.services.report_service import generate_rf_technical_report
+from backend.rf.waveform_processor import process_time_domain_waveform
 
 
 api_bp = Blueprint("api_bp", __name__)
@@ -338,7 +346,11 @@ def analyze_spectrum():
     here; no availability decision is made.  I/Q is not fabricated.
     """
     try:
-        data = request.json or {}
+        data = request.get_json(silent=True)
+        if data is None and request.data:
+            return jsonify({"error": "Invalid JSON in request body", "status": 400}), 400
+        if data is None:
+            data = {}
         center_freq_mhz    = float(data.get("center_freq_mhz", 1800.0))
         bandwidth_mhz      = float(data.get("bandwidth_mhz", 10.0))
         signal_strength_dbm = float(data.get("signal_strength_dbm", -75.0))
@@ -514,6 +526,349 @@ def get_allocation_config():
     }), 200
 
 
+@api_bp.route("/api/allocation/candidates", methods=["GET"])
+def get_allocation_candidates():
+    """GET endpoint returning candidate channels list for allocation."""
+    start_f = float(request.args.get("start_freq_mhz", 70.0))
+    end_f = float(request.args.get("end_freq_mhz", 160.0))
+    bw = float(request.args.get("channel_bw_mhz", 0.2))
+    gb = float(request.args.get("guard_band_mhz", 0.05))
+    noise = float(request.args.get("noise_floor_dbm", -100.0))
+
+    res = ChannelAllocationEngine.generate_and_score_candidates(
+        start_freq_mhz=start_f,
+        end_freq_mhz=end_f,
+        channel_bw_mhz=bw,
+        guard_band_mhz=gb,
+        noise_floor_dbm=noise,
+    )
+    return jsonify({"candidates": res["candidates"], "total_candidates": res["total_candidates"]}), 200
+
+
+@api_bp.route("/api/allocation/recommended", methods=["GET"])
+def get_recommended_channel():
+    """GET endpoint returning top recommended channel candidate."""
+    start_f = float(request.args.get("start_freq_mhz", 70.0))
+    end_f = float(request.args.get("end_freq_mhz", 160.0))
+    bw = float(request.args.get("channel_bw_mhz", 0.2))
+    gb = float(request.args.get("guard_band_mhz", 0.05))
+    noise = float(request.args.get("noise_floor_dbm", -100.0))
+
+    res = ChannelAllocationEngine.generate_and_score_candidates(
+        start_freq_mhz=start_f,
+        end_freq_mhz=end_f,
+        channel_bw_mhz=bw,
+        guard_band_mhz=gb,
+        noise_floor_dbm=noise,
+    )
+    return jsonify({
+        "recommended_candidate": res["recommended_candidate"],
+        "has_suitable_candidate": res["has_suitable_candidate"],
+        "reason": res["reason"],
+        "supporting_evidence": res["supporting_evidence"],
+    }), 200
+
+
+@api_bp.route("/api/allocation/analysis", methods=["GET"])
+def get_allocation_analysis():
+    """GET endpoint returning full allocation assessment analysis."""
+    start_f = float(request.args.get("start_freq_mhz", 70.0))
+    end_f = float(request.args.get("end_freq_mhz", 160.0))
+    bw = float(request.args.get("channel_bw_mhz", 0.2))
+    gb = float(request.args.get("guard_band_mhz", 0.05))
+    noise = float(request.args.get("noise_floor_dbm", -100.0))
+
+    res = ChannelAllocationEngine.generate_and_score_candidates(
+        start_freq_mhz=start_f,
+        end_freq_mhz=end_f,
+        channel_bw_mhz=bw,
+        guard_band_mhz=gb,
+        noise_floor_dbm=noise,
+    )
+    return jsonify(res), 200
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Event Analytics & Occupancy Timeline (Phase 4B & 4C)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_bp.route("/api/events", methods=["GET"])
+@api_bp.route("/api/analytics/events", methods=["GET"])
+def get_events_analytics():
+    """Return summary statistics of all detected RF events."""
+    summary = get_rf_event_summary()
+    return jsonify(summary), 200
+
+
+@api_bp.route("/api/analytics/utilization", methods=["GET"])
+def get_channel_utilization():
+    """Return temporal channel utilization analytics across recorded events."""
+    freq_param = request.args.get("target_frequency_mhz")
+    target_freq = float(freq_param) if freq_param else None
+    window_s = float(request.args.get("window_seconds", 3600.0))
+
+    util_res = calculate_channel_utilization(
+        target_frequency_mhz=target_freq,
+        observation_window_seconds=window_s,
+    )
+    return jsonify(util_res), 200
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Controlled RF Replay Mode (Section 13)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_bp.route("/api/events/ingest", methods=["POST"])
+def ingest_events_from_dataset():
+    """Derive and ingest contiguous RF events from dataset into SQLite."""
+    data = request.get_json(silent=True) or {}
+    force = bool(data.get("force", True))
+
+    from backend.rf.event_detector import derive_and_ingest_events_from_dataset
+    res = derive_and_ingest_events_from_dataset(force_reingest=force)
+    return jsonify(res), 200
+
+
+@api_bp.route("/api/replay/control", methods=["POST"])
+def control_rf_replay():
+    """Control historical dataset/IQ observation replay (play, pause, reset, step, set_speed, set_index)."""
+    data = request.json or {}
+    action = data.get("action", "pause")
+    speed = data.get("speed")
+    target_index = data.get("index")
+
+    controller = RFReplayController.get_instance()
+    status = controller.control(action=action, speed=speed, target_index=target_index)
+    if action == "step":
+        obs = controller.step()
+        status["current_observation"] = obs
+    return jsonify(status), 200
+
+
+@api_bp.route("/api/replay/status", methods=["GET"])
+def get_rf_replay_status():
+    """Get current RF replay state and provenance."""
+    controller = RFReplayController.get_instance()
+    return jsonify(controller.get_status()), 200
+
+
+@api_bp.route("/api/replay/sample/<int:index>", methods=["GET"])
+def get_replay_sample(index: int):
+    """Get specific observation by index from dataset."""
+    from backend.rf.sources.dataset_source import DatasetRFSource
+    ds = DatasetRFSource()
+    if not ds.is_available():
+        return jsonify({"error": "Dataset unavailable", "status": 404}), 404
+    if index < 0 or index >= ds.total_observations:
+        return jsonify({"error": f"Index {index} out of bounds (0-{ds.total_observations-1})", "status": 400}), 400
+
+    obs = ds.get_observation(index=index)
+    return jsonify({
+        "index": index,
+        "total_samples": ds.total_observations,
+        "observation": obs.to_dict(),
+        "provenance": "DATASET",
+    }), 200
+
+
+@api_bp.route("/api/dataset/observations", methods=["GET"])
+def get_dataset_observations():
+    """Get paginated observation records from authentic dataset for Data Explorer."""
+    from backend.rf.sources.dataset_source import DatasetRFSource
+    ds = DatasetRFSource()
+    offset = int(request.args.get("offset", 0))
+    limit = int(request.args.get("limit", 50))
+    freq_param = request.args.get("frequency_mhz")
+    freq = float(freq_param) if freq_param else None
+
+    res = ds.get_observations_page(offset=offset, limit=limit, frequency_mhz=freq)
+    return jsonify(res), 200
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Automatic RF Technical Report Generator (Section 19)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_bp.route("/api/report/rf-analysis", methods=["GET"])
+def get_rf_technical_report():
+    """Generate comprehensive 10-section RF Technical Analysis Report."""
+    freq_mhz = float(request.args.get("frequency_mhz", 120.0))
+    power_dbm = float(request.args.get("signal_power_dbm", -75.0))
+    noise_dbm = float(request.args.get("noise_floor_dbm", -100.0))
+    source_type = request.args.get("source_type", "DATASET")
+
+    report = generate_rf_technical_report(
+        frequency_mhz=freq_mhz,
+        signal_power_dbm=power_dbm,
+        noise_floor_dbm=noise_dbm,
+        source_type=source_type,
+    )
+    return jsonify(report), 200
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RF Monitor & Waveform Endpoints (Section 40)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_bp.route("/api/rf/observation", methods=["GET"])
+def get_rf_observation():
+    """GET current normalized RF observation metadata."""
+    freq_mhz = float(request.args.get("frequency_mhz", 120.0))
+    bw_mhz = float(request.args.get("bandwidth_mhz", 0.2))
+    power_dbm = float(request.args.get("signal_power_dbm", -75.0))
+
+    return jsonify({
+        "status": "success",
+        "observation": {
+            "center_freq_mhz": freq_mhz,
+            "bandwidth_khz": bw_mhz * 1000.0,
+            "signal_strength_dbm": power_dbm,
+            "sample_rate_mhz": 2.048,
+            "source_type": "SIMULATION",
+            "provenance_tag": "SIMULATION",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "iq_available": 1,
+        }
+    }), 200
+
+
+@api_bp.route("/api/rf/waveform", methods=["GET"])
+def get_rf_waveform():
+    """GET time-domain I/Q waveform series and quality metrics.
+
+    If I/Q data is present, returns complex baseband series and derived metrics.
+    If I/Q data is absent, returns explicit fallback status without generating fake data.
+    """
+    freq_mhz = float(request.args.get("frequency_mhz", 120.0))
+    bw_mhz = float(request.args.get("bandwidth_mhz", 0.2))
+    power_dbm = float(request.args.get("signal_power_dbm", -75.0))
+    noise_dbm = float(request.args.get("noise_floor_dbm", -100.0))
+    iq_flag = int(request.args.get("iq_available", 1))
+
+    if iq_flag == 0:
+        res = process_time_domain_waveform(
+            iq_samples=None,
+            sample_rate_mhz=2.048,
+            center_freq_mhz=freq_mhz,
+        )
+        return jsonify(res), 200
+
+    # Generate real complex baseband signal using SimulatedRFSource
+    source = SimulatedRFSource(
+        center_freq_mhz=freq_mhz,
+        bandwidth_mhz=bw_mhz,
+        signal_strength_dbm=power_dbm,
+        noise_floor_dbm=noise_dbm,
+        num_samples=1024,
+    )
+    rx_signal, sr_mhz = source.get_signal()
+
+    res = process_time_domain_waveform(
+        iq_samples=rx_signal,
+        sample_rate_mhz=sr_mhz,
+        center_freq_mhz=freq_mhz,
+    )
+    return jsonify(res), 200
+
+
+@api_bp.route("/api/rf/spectrum", methods=["GET"])
+def get_rf_spectrum():
+    """GET FFT PSD spectral estimation and peak detection."""
+    freq_mhz = float(request.args.get("frequency_mhz", 120.0))
+    bw_mhz = float(request.args.get("bandwidth_mhz", 0.2))
+    power_dbm = float(request.args.get("signal_power_dbm", -75.0))
+    noise_dbm = float(request.args.get("noise_floor_dbm", -100.0))
+
+    source = SimulatedRFSource(
+        center_freq_mhz=freq_mhz,
+        bandwidth_mhz=bw_mhz,
+        signal_strength_dbm=power_dbm,
+        noise_floor_dbm=noise_dbm,
+    )
+    rx_signal, sr_mhz = source.get_signal()
+    freqs_mhz, psd_dbm = compute_fft_psd(rx_signal, sr_mhz, freq_mhz)
+    estimated_noise = estimate_noise_floor(psd_dbm)
+    peaks = detect_peaks(freqs_mhz, psd_dbm, estimated_noise)
+    occupied = get_occupied_regions(peaks)
+
+    factor = max(1, len(freqs_mhz) // 200)
+    return jsonify({
+        "data_source": "DSP Spectral Estimator",
+        "frequency_range": {
+            "start_mhz": freq_mhz - bw_mhz / 2,
+            "end_mhz": freq_mhz + bw_mhz / 2,
+        },
+        "noise_floor_dbm": round(estimated_noise, 2),
+        "detected_signals": peaks,
+        "occupied_regions": occupied,
+        "spectrum_data": {
+            "frequencies": [round(f, 3) for f in freqs_mhz[::factor].tolist()],
+            "power_dbm": [round(p, 2) for p in psd_dbm[::factor].tolist()],
+        },
+        "provenance": "DERIVED",
+    }), 200
+
+
+@api_bp.route("/api/rf/activity", methods=["GET"])
+def get_rf_activity():
+    """GET current RF activity state and signal-to-noise ratio."""
+    power_dbm = float(request.args.get("signal_power_dbm", -75.0))
+    noise_dbm = float(request.args.get("noise_floor_dbm", -100.0))
+
+    is_active = power_dbm > (noise_dbm + 10.0)
+    activity_state = "DETECTED" if is_active else "NOT_DETECTED"
+    snr_db = power_dbm - noise_dbm
+
+    return jsonify({
+        "activity_state": activity_state,
+        "signal_power_dbm": round(power_dbm, 2),
+        "noise_floor_dbm": round(noise_dbm, 2),
+        "snr_db": round(snr_db, 2),
+        "provenance": "INFERRED_RF_ACTIVITY",
+    }), 200
+
+
+@api_bp.route("/api/ml/audit", methods=["GET"])
+def get_ml_audit():
+    """GET complete ML Audit, Leakage Audit, Validation Strategy comparison, and Baselines."""
+    audit_file = Path(__file__).resolve().parents[2] / "ml" / "results" / "complete_ml_audit_results.json"
+    if audit_file.exists():
+        try:
+            data = json.loads(audit_file.read_text(encoding="utf-8"))
+            return jsonify(data), 200
+        except Exception as exc:
+            return jsonify({"error": f"Failed to load audit file: {exc}"}), 500
+    
+    # Fallback to dynamic audit run if file missing
+    try:
+        from ml.training.ml_audit_runner import run_full_ml_audit
+        data = run_full_ml_audit()
+        return jsonify(data), 200
+    except Exception as exc:
+        return jsonify({"error": f"Failed to run ML audit: {exc}"}), 500
+
+
+@api_bp.route("/api/ml/features", methods=["GET"])
+def get_ml_features():
+    """GET ML Feature Importance (Gini & Permutation) labeled MODEL FEATURE IMPORTANCE."""
+    audit_file = Path(__file__).resolve().parents[2] / "ml" / "results" / "complete_ml_audit_results.json"
+    if audit_file.exists():
+        try:
+            data = json.loads(audit_file.read_text(encoding="utf-8"))
+            feat_imp = data.get("phase_12_feature_importance", {})
+            return jsonify(feat_imp), 200
+        except Exception as exc:
+            pass
+
+    # Fall back to metadata if audit file unavailable
+    metadata = get_model_metadata()
+    return jsonify({
+        "title": "MODEL FEATURE IMPORTANCE",
+        "disclaimer": "Feature importance represents statistical model split contribution, NOT physical RF causality.",
+        "gini_importance": metadata.get("feature_importances", {}),
+    }), 200
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Utilities
 # ─────────────────────────────────────────────────────────────────────────────
@@ -526,5 +881,8 @@ def _safe_float(value) -> float | None:
         return None if (np.isnan(f) or np.isinf(f)) else f
     except (TypeError, ValueError):
         return None
+
+
+
 
 

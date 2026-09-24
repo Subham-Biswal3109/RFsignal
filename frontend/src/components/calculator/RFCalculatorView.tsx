@@ -53,13 +53,16 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+import { CalculationTraceModal, TraceData } from "./CalculationTraceModal";
+
 interface StepDisplayProps {
   step: CalculationStep;
   badgeText?: string;
   badgeVariant?: "blue" | "green" | "amber";
+  onOpenTrace?: (trace: TraceData) => void;
 }
 
-function StepDisplay({ step, badgeText, badgeVariant = "blue" }: StepDisplayProps) {
+function StepDisplay({ step, badgeText, badgeVariant = "blue", onOpenTrace }: StepDisplayProps) {
   const badgeColor =
     badgeVariant === "green"
       ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300"
@@ -67,15 +70,39 @@ function StepDisplay({ step, badgeText, badgeVariant = "blue" }: StepDisplayProp
       ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300"
       : "bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/40 dark:text-sky-300";
 
+  const handleTraceClick = () => {
+    if (onOpenTrace) {
+      onOpenTrace({
+        title: step.name,
+        inputs: { Formula: step.formula },
+        formula: step.formula,
+        substitution: step.substitution,
+        result: step.result,
+        unit: step.unit || "SI Unit",
+        interpretation: step.notes || "Mathematical calculation step.",
+      });
+    }
+  };
+
   return (
     <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-4 space-y-3 font-mono text-xs">
       <div className="flex items-center justify-between font-sans">
         <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{step.name}</span>
-        {badgeText && (
-          <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${badgeColor}`}>
-            {badgeText}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {badgeText && (
+            <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${badgeColor}`}>
+              {badgeText}
+            </span>
+          )}
+          {onOpenTrace && (
+            <button
+              onClick={handleTraceClick}
+              className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 hover:bg-cyan-900 transition"
+            >
+              Trace
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -112,6 +139,8 @@ export function RFCalculatorView() {
   const [activeTab, setActiveTab] = useState<
     "power" | "wavelength" | "bandwidth" | "nyquist" | "thermal" | "snr" | "fspl" | "linkbudget"
   >("power");
+
+  const [activeTrace, setActiveTrace] = useState<TraceData | null>(null);
 
   // 1. Power State
   const [inputDbm, setInputDbm] = useState<number>(-60);
@@ -293,9 +322,9 @@ export function RFCalculatorView() {
               </div>
 
               <div className="space-y-4">
-                <StepDisplay step={powerWattsStep} badgeText="dBm → Watts" badgeVariant="green" />
-                <StepDisplay step={powerDbwStep} badgeText="dBm → dBW" badgeVariant="blue" />
-                <StepDisplay step={powerDbmStep} badgeText="Watts → dBm" badgeVariant="amber" />
+                <StepDisplay step={powerWattsStep} badgeText="dBm → Watts" badgeVariant="green" onOpenTrace={(t) => setActiveTrace(t)} />
+                <StepDisplay step={powerDbwStep} badgeText="dBm → dBW" badgeVariant="blue" onOpenTrace={(t) => setActiveTrace(t)} />
+                <StepDisplay step={powerDbmStep} badgeText="Watts → dBm" badgeVariant="amber" onOpenTrace={(t) => setActiveTrace(t)} />
               </div>
             </div>
           </Panel>
@@ -885,12 +914,14 @@ export function RFCalculatorView() {
               </div>
 
               <div className="space-y-4">
-                <StepDisplay step={linkBudgetStep} badgeText="Theoretical Link Budget" badgeVariant="green" />
+                <StepDisplay step={linkBudgetStep} badgeText="Theoretical Link Budget" badgeVariant="green" onOpenTrace={(t) => setActiveTrace(t)} />
               </div>
             </div>
           </Panel>
         </div>
       )}
+
+      <CalculationTraceModal trace={activeTrace} onClose={() => setActiveTrace(null)} />
     </div>
   );
 }

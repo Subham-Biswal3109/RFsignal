@@ -39,43 +39,79 @@ def ood_check(input_data: dict, bundle: dict):
     return bool(reasons), reasons
 
 
+import sys
+from backend.rf.dsp_activity_detector import DSPActivityDetector
+
+_dsp_detector = DSPActivityDetector()
+
+
 def detector_activity(signal_strength_dbm: float, frequency_mhz: float, bundle: dict):
-    thresholds=bundle.get("signal_strength_activity_thresholds_dbm",{})
-    key=str(float(frequency_mhz))
+    thresholds = bundle.get("signal_strength_activity_thresholds_dbm", {})
+    key = str(float(frequency_mhz))
     if key not in thresholds:
         # Never invent a threshold for an unseen frequency.
         return None, f"No trained activity threshold for frequency {frequency_mhz} MHz"
-    threshold=float(thresholds[key])
+    threshold = float(thresholds[key])
     return bool(float(signal_strength_dbm) >= threshold), None
 
 
 def predict(input_data: dict, bundle: dict):
-    feature_columns=bundle["feature_columns"]
-    df=pd.DataFrame([input_data])
-    missing=[c for c in feature_columns if c not in df.columns]
-    if missing: raise ValueError(f"Input data is missing required features: {missing}")
-    pipe=bundle["pipeline"]
-    probability=float(pipe.predict_proba(df[feature_columns])[0,1])
-    ml_activity=bool(probability >= float(bundle.get("threshold_occupied",.5)))
-    detector, detector_reason=detector_activity(input_data["signal_strength_dbm"],input_data["frequency_mhz"],bundle)
-    ood, reasons=ood_check(input_data,bundle)
-    if detector_reason: reasons.append(detector_reason); ood=True
+    feature_columns = bundle["feature_columns"]
+    df = pd.DataFrame([input_data])
+    missing = [c for c in feature_columns if c not in df.columns]
+    if missing:
+        raise ValueError(f"Input data is missing required features: {missing}")
+
+    pipe = bundle["pipeline"]
+    probability = float(pipe.predict_proba(df[feature_columns])[0, 1])
+    ml_activity = bool(probability >= float(bundle.get("threshold_occupied", 0.5)))
+
+    # 1. Deterministic Physical RF/DSP Detector
+    dsp_eval = _dsp_detector.evaluate_observation(
+        frequency_mhz=float(input_data["frequency_mhz"]),
+        bandwidth_khz=float(input_data.get("bandwidth_khz", 200.0)),
+        signal_strength_dbm=float(input_data["signal_strength_dbm"]),
+        psd_peak_dbm=input_data.get("psd_peak_dbm"),
+        iq_available=bool(input_data.get("iq_available", 0)),
+        iq_rms_magnitude=input_data.get("iq_rms_magnitude"),
+        iq_spectral_entropy=input_data.get("iq_spectral_entropy"),
+    )
+
+    detector, detector_reason = detector_activity(
+        input_data["signal_strength_dbm"], input_data["frequency_mhz"], bundle
+    )
+
+    # 2. Out-of-Distribution (OOD) Safety Guard
+    ood, reasons = ood_check(input_data, bundle)
+    if detector_reason:
+        reasons.append(detector_reason)
+        ood = True
+
+    # 3. Evidence Fusion & Final Availability Decision
     if ood:
-        availability="UNCERTAIN"
-        activity="UNCERTAIN"
+        availability = "UNCERTAIN"
+        activity = "UNCERTAIN"
+        fusion_summary = "OOD safety override active; decision forced to UNCERTAIN."
     else:
-        activity="DETECTED" if detector else "NOT_DETECTED"
-        availability="OCCUPIED" if detector else "AVAILABLE"
+        # Physical DSP evidence is primary
+        activity = "DETECTED" if detector else "NOT_DETECTED"
+        availability = "OCCUPIED" if detector else "AVAILABLE"
+        fusion_summary = f"DSP detector ({dsp_eval['activity_state']}) primary evidence + ML probability ({probability:.2%}) supporting evidence."
+
     return {
         "activity": activity,
         "availability": availability,
-        "confidence": probability if not ood else min(probability,1.0-probability),
+        "confidence": probability if not ood else min(probability, 1.0 - probability),
         "ml_activity_probability": probability,
         "ml_activity": ml_activity,
         "detector_activity": detector,
+        "dsp_evidence": dsp_eval,
         "ood": ood,
         "ood_reasons": reasons,
-        "threshold": float(bundle.get("threshold_occupied",.5)),
+        "threshold": float(bundle.get("threshold_occupied", 0.5)),
+        "label_type": "INFERRED_RF_ACTIVITY",
+        "ground_truth": "UNVERIFIED",
+        "evidence_fusion_summary": fusion_summary,
     }
 
 

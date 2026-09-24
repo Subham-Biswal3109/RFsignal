@@ -34,6 +34,16 @@ class DatasetRFSource(BaseRFSource):
             except Exception:
                 self._df = None
 
+    @property
+    def df(self) -> pd.DataFrame | None:
+        """Expose underlying dataset DataFrame."""
+        return self._df
+
+    @property
+    def total_observations(self) -> int:
+        """Return total row count of the dataset."""
+        return len(self._df) if self._df is not None else 0
+
     def get_source_type(self) -> RFSourceType:
         return RFSourceType.DATASET
 
@@ -42,6 +52,10 @@ class DatasetRFSource(BaseRFSource):
 
     def is_available(self) -> bool:
         return self._df is not None and not self._df.empty
+
+    def fetch_observation(self, *args, **kwargs) -> NormalizedRFObservation:
+        """Alias for get_observation."""
+        return self.get_observation(*args, **kwargs)
 
     def get_observation(
         self,
@@ -89,5 +103,43 @@ class DatasetRFSource(BaseRFSource):
             metadata={
                 "dataset_name": "logged_data.csv",
                 "inferred_rf_activity": int(row.get("inferred_rf_activity", 0)),
+                "dataset_index": int(row.name) if hasattr(row, "name") and isinstance(row.name, (int, np.integer)) else (index or 0),
             },
         )
+
+    def get_observations_page(
+        self,
+        offset: int = 0,
+        limit: int = 50,
+        frequency_mhz: float | None = None,
+    ) -> dict:
+        """Return paginated list of observation dicts."""
+        if not self.is_available() or self._df is None:
+            return {"total": 0, "offset": offset, "limit": limit, "observations": []}
+
+        df = self._df
+        if frequency_mhz is not None:
+            df = df[df["frequency_mhz"] == float(frequency_mhz)]
+
+        total = len(df)
+        slice_df = df.iloc[offset : offset + limit]
+
+        records = []
+        for idx, row in slice_df.iterrows():
+            records.append({
+                "index": int(idx),
+                "timestamp": str(row.get("Timestamp", "")),
+                "frequency_mhz": float(row.get("frequency_mhz", 0.0)),
+                "bandwidth_khz": float(row.get("bandwidth_khz", 0.0)),
+                "signal_strength_dbm": float(row.get("signal_strength_dbm", 0.0)),
+                "iq_available": int(row.get("iq_available", 0)),
+                "inferred_rf_activity": int(row.get("inferred_rf_activity", 0)),
+            })
+
+        return {
+            "total": total,
+            "offset": offset,
+            "limit": limit,
+            "observations": records,
+        }
+

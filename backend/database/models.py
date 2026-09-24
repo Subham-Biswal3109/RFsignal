@@ -80,3 +80,37 @@ class AvailabilityCandidate(Base):
             f"freq={self.frequency_start_mhz}-{self.frequency_end_mhz} MHz "
             f"availability={self.availability}>"
         )
+
+
+class RFEventLog(Base):
+    """Stores detected RF active events over time for analytics & temporal occupancy."""
+
+    __tablename__ = "rf_events"
+
+    event_id = Column(Integer, primary_key=True, autoincrement=True)
+    frequency_mhz = Column(Float, nullable=False)
+    bandwidth_mhz = Column(Float, nullable=False, default=0.2)
+    start_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    end_time = Column(DateTime, nullable=True)
+    duration_seconds = Column(Float, nullable=True)
+    peak_power_dbm = Column(Float, nullable=False)
+    avg_power_dbm = Column(Float, nullable=False)
+    activity_state = Column(String(32), nullable=False, default="DETECTED")
+    source_type = Column(String(64), nullable=False, default="DATASET")
+    provenance = Column(String(64), nullable=False, default="INFERRED_RF_ACTIVITY")
+
+    def to_dict(self) -> dict:
+        return {
+            "event_id": self.event_id,
+            "frequency_mhz": round(self.frequency_mhz, 3),
+            "bandwidth_mhz": round(self.bandwidth_mhz, 3),
+            "start_time": self.start_time.isoformat() if self.start_time else None,
+            "end_time": self.end_time.isoformat() if self.end_time else None,
+            "duration_seconds": round(self.duration_seconds, 2) if self.duration_seconds is not None else None,
+            "peak_power_dbm": round(self.peak_power_dbm, 2),
+            "avg_power_dbm": round(self.avg_power_dbm, 2),
+            "activity_state": self.activity_state,
+            "source_type": self.source_type,
+            "provenance": self.provenance,
+        }
+

@@ -33,8 +33,7 @@ import {
   Loader2,
 } from "lucide-react";
 import type { AnalyzeSpectrumResponse, PredictRequest } from "@/types/wire-watcher";
-
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:5000";
+import { apiFetch } from "@/lib/api";
 
 interface SpectrumVisualizerViewProps {
   onSendToAnalyzer?: (req: PredictRequest) => void;
@@ -55,9 +54,8 @@ export function SpectrumVisualizerView({ onSendToAnalyzer }: SpectrumVisualizerV
     setLoading(true);
     setError(null);
     try {
-      const resp = await fetch(`${API_BASE}/api/spectrum/analyze`, {
+      const data = await apiFetch<AnalyzeSpectrumResponse>("/api/spectrum/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           center_freq_mhz: centerFreqMhz,
           bandwidth_mhz: bandwidthMhz,
@@ -65,11 +63,9 @@ export function SpectrumVisualizerView({ onSendToAnalyzer }: SpectrumVisualizerV
           noise_floor_dbm: noiseFloorDbmInput,
         }),
       });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data: AnalyzeSpectrumResponse = await resp.json();
       setSpectrumData(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to compute spectrum");
+    } catch (err: any) {
+      setError(err.message || "Failed to compute spectrum");
     } finally {
       setLoading(false);
     }

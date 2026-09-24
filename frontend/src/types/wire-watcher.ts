@@ -341,6 +341,10 @@ export interface ChannelCandidate {
   bandwidth_mhz: number;
   bandwidth_khz: number;
   guard_band_mhz: number;
+  protected_lower_mhz?: number;
+  protected_upper_mhz?: number;
+  guard_band_status?: "SAFE_MARGIN" | "MARGINAL" | "CONFLICT";
+  interference_risk?: "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
   activity: string;
   availability: string;
   ml_probability: number;
@@ -355,8 +359,23 @@ export interface ChannelCandidate {
     noise_penalty: number;
     ood_penalty: number;
     uncertainty_penalty: number;
+    guard_band_penalty?: number;
+    interference_penalty?: number;
   };
   recommendation_status: "RECOMMENDED" | "REVIEW_REQUIRED" | "REJECTED";
+  assessment_explanation?: {
+    headline: string;
+    summary: string;
+    recommendation: string;
+    trace: {
+      inputs: Record<string, string>;
+      formula: string;
+      substitution: string;
+      result: string;
+      unit: string;
+      engineering_note: string;
+    };
+  };
 }
 
 export interface AllocationRecommendationResponse {
@@ -372,6 +391,9 @@ export interface AllocationRecommendationResponse {
   total_candidates: number;
   recommended_candidate: ChannelCandidate | null;
   has_suitable_candidate: boolean;
+  reason?: string;
+  supporting_evidence?: Record<string, any>;
+  rejected_candidates?: ChannelCandidate[];
   candidates: ChannelCandidate[];
   disclaimer: string;
 }
@@ -388,3 +410,102 @@ export interface SdrStatusResponse {
   message: string;
 }
 
+export interface RFEventLog {
+  event_id: number;
+  frequency_mhz: number;
+  bandwidth_mhz: number;
+  start_time: string | null;
+  end_time: string | null;
+  duration_seconds: number | null;
+  peak_power_dbm: number;
+  avg_power_dbm: number;
+  activity_state: string;
+  source_type: string;
+  provenance: string;
+}
+
+export interface RFEventSummary {
+  total_rf_events: number;
+  average_event_duration_s: number;
+  maximum_event_duration_s: number;
+  average_peak_power_dbm: number;
+  maximum_peak_power_dbm: number;
+  most_active_frequency_mhz: number | null;
+  most_frequent_source: string | null;
+  events: RFEventLog[];
+}
+
+export interface ChannelUtilization {
+  utilization_status: "AVAILABLE" | "UNAVAILABLE";
+  reason: string;
+  target_frequency_mhz: number | null;
+  total_observation_duration_s: number;
+  active_duration_s: number;
+  inactive_duration_s: number;
+  uncertain_duration_s: number;
+  utilization_percentage: number;
+  event_count: number;
+  average_event_duration_s: number;
+  maximum_event_duration_s: number;
+  provenance: string;
+}
+
+export interface RFReplayStatus {
+  mode: string;
+  is_playing: boolean;
+  playback_speed: number;
+  current_index: number;
+  total_samples: number;
+  provenance: string;
+  is_live: boolean;
+  display_warning: string;
+  last_observation?: Record<string, any> | null;
+}
+
+export interface RFTechnicalReport {
+  report_id: string;
+  timestamp: string;
+  sections: {
+    "1_observation": Record<string, any>;
+    "2_dsp": Record<string, any>;
+    "3_rf_engineering": Record<string, any>;
+    "4_ml": Record<string, any>;
+    "5_ood": Record<string, any>;
+    "6_availability": Record<string, any>;
+    "7_allocation": Record<string, any>;
+    "8_events": Record<string, any>;
+    "9_provenance": Record<string, any>;
+    "10_limitations": string[];
+  };
+}
+
+export interface WaveformMetrics {
+  num_samples: number;
+  sample_rate_mhz: number;
+  center_freq_mhz: number;
+  duration_us: number;
+  frequency_resolution_khz: number;
+  i_rms: number;
+  q_rms: number;
+  magnitude_rms: number;
+  peak_magnitude: number;
+  crest_factor_linear: number;
+  crest_factor_db: number;
+}
+
+export interface WaveformSeries {
+  time_us: number[];
+  i: number[];
+  q: number[];
+  magnitude: number[];
+  phase: number[];
+}
+
+export interface WaveformResponse {
+  iq_available: number;
+  status: "AVAILABLE" | "UNAVAILABLE";
+  reason: string;
+  metrics: WaveformMetrics | null;
+  waveform_series: WaveformSeries | null;
+  provenance?: string;
+}
