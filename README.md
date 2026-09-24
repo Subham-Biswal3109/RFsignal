@@ -1,27 +1,31 @@
-# WIRE WATCHER — RF Spectrum Monitoring, Signal Analysis and Availability Decision System
+# WIRE WATCHER — RF Spectrum Monitoring, Signal Analysis, Channel Allocation and Availability Decision System
 
 > **Electronics & Communication Engineering (ECE) / RF Spectrum Analysis Project**  
-> An engineering instrument for RF spectrum monitoring, digital signal processing (DSP), thermal noise floor evaluation, out-of-distribution (OOD) safety gating, and operational channel availability decision-making.
+> An engineering instrument for RF spectrum monitoring, digital signal processing (DSP), time-domain waveform analysis, thermal noise floor evaluation, out-of-distribution (OOD) safety gating, channel allocation, temporal occupancy analytics, and operational availability decision-making.
 
 ---
 
 ## 📌 Executive Summary
 
-**Wire Watcher** is an Electronics & Communication Engineering (ECE) system designed to assess radio frequency (RF) channel occupancy and operational spectrum availability across Very High Frequency (VHF) bands (70 MHz – 160 MHz).
+**Wire Watcher** is an Electronics & Communication Engineering (ECE) system designed to assess radio frequency (RF) channel occupancy, operational spectrum availability, and channel candidate allocation across Very High Frequency (VHF) bands (70 MHz – 160 MHz).
 
-The machine learning classifier (Random Forest, ROC-AUC ≈ 0.50) is **FROZEN** and serves as **ONE supplementary component** inside a multi-stage physical and digital signal processing pipeline. To maintain strict scientific integrity and avoid circular leakage, received signal strength is strictly quarantined from ML feature predictors.
+The machine learning classifier (Random Forest v2, ROC-AUC ≈ 0.50) is **FROZEN** and serves as **ONE supplementary component** inside a multi-stage physical and digital signal processing pipeline. To maintain strict scientific integrity and avoid circular leakage, received signal strength is strictly quarantined from ML feature predictors.
 
 ### 🌟 Primary Objectives & Principles
 - **Prominent RF Engineering & DSP**: Real physical equations, Johnson-Nyquist thermal noise calculations ($kTB$), free-space path loss ($FSPL$), electromagnetic wavelength ($\lambda = c/f$), antenna element dimensions ($\lambda/4, \lambda/2$), and Nyquist sampling rate checks ($f_s \ge 2B$).
+- **Time-Domain & Spectral Analysis**: Hanning-windowed FFT Power Spectral Density (PSD), peak detection, and time-domain baseband complex I/Q waveform processing with derived RMS, Peak, and Crest Factor quality metrics.
 - **Multi-Stage Decision Hierarchy**: Operational availability decisions (`AVAILABLE`, `OCCUPIED`, `UNCERTAIN`) combine empirical signal power detection, I/Q envelope DSP statistics, ML probability, and multivariate out-of-distribution (OOD) safety bounds.
-- **Explicit Data Provenance**: Every quantity in the system is labeled with its exact data provenance tag (`REAL_MEASURED`, `DERIVED`, `INFERRED/PSEUDO-LABEL`, `ML_EVIDENCE`, `APPLICATION_METADATA`).
-- **Scientific Integrity**: Target label `inferred_rf_activity` is an **inferred pseudo-label**. Ground-truth spectrum occupancy is explicitly declared **UNVERIFIED**.
+- **Engineering Channel Allocation**: Automated channel candidate generation, guard-band analysis, inter-channel interference risk assessment, transparent 100-point scoring formula, and rejection trace.
+- **RF Event & Temporal Occupancy Analytics**: Contiguous transmission burst event derivation, interval-merged temporal channel utilization %, and SQLite event persistence (`wire_watcher.db`).
+- **Controlled Replay Engine**: Chronological playback across 164,160 authentic dataset observations with step-by-step pipeline execution (`Dataset → RF Observation → DSP → Activity Detector → ML Evidence → OOD Guard → Availability → Allocation`).
+- **Explicit Data Provenance**: Every quantity in the system is labeled with its exact data provenance tag (`REAL_MEASURED`, `DATASET`, `DERIVED`, `INFERRED_RF_ACTIVITY`, `ML_EVIDENCE`, `APPLICATION_METADATA`).
+- **Scientific Integrity**: Target label `inferred_rf_activity` is an **inferred pseudo-label**. Ground-truth spectrum occupancy is explicitly declared **UNVERIFIED**. Zero fake I/Q arrays or random events are fabricated when data is absent.
 
 ---
 
-## 📐 Multi-Stage RF Decision Hierarchy
+## 📐 Multi-Stage RF Decision & Allocation Hierarchy
 
-```
+```text
                    +---------------------------------------+
                    |            RF Observation             |
                    | (Freq, BW, Power, I/Q Sample Vector)  |
@@ -29,14 +33,8 @@ The machine learning classifier (Random Forest, ROC-AUC ≈ 0.50) is **FROZEN** 
                                        |
                                        v
                    +---------------------------------------+
-                   |        RF Feature Extraction          |
-                   |   (13 I/Q Envelope & FFT Features)    |
-                   +---------------------------------------+
-                                       |
-                                       v
-                   +---------------------------------------+
-                   |               FFT / PSD               |
-                   |      (Normalized Spectral Power)      |
+                   |  Time-Domain Waveform & DSP Analysis  |
+                   | (I(t), Q(t), Magnitude, FFT, PSD)     |
                    +---------------------------------------+
                                        |
                                        v
@@ -48,7 +46,7 @@ The machine learning classifier (Random Forest, ROC-AUC ≈ 0.50) is **FROZEN** 
                                        v
                    +---------------------------------------+
                    | RF Activity Det. + ML Activity Evid.  |
-                   |  (Power Threshold + Random Forest)    |
+                   |  (Power Threshold + Random Forest v2) |
                    +---------------------------------------+
                                        |
                                        v
@@ -62,25 +60,62 @@ The machine learning classifier (Random Forest, ROC-AUC ≈ 0.50) is **FROZEN** 
                    |         Availability Decision         |
                    |     AVAILABLE / OCCUPIED / UNCERTAIN  |
                    +---------------------------------------+
+                                       |
+                                       v
+                   +---------------------------------------+
+                   |       RF Event & Utilization Log      |
+                   | (SQLite Event Burst Ingestion & % Util)|
+                   +---------------------------------------+
+                                       |
+                                       v
+                   +---------------------------------------+
+                   |     Channel Candidate Allocation      |
+                   | (Candidate Scoring & Guard-Band Risk) |
+                   +---------------------------------------+
 ```
 
 ---
 
 ## 🛠️ System Modules
 
-### 1. 📡 Spectrum Availability Analyzer (Home Screen)
-- **Top Hero Instrument Banner**: Immediately communicates **WIRE WATCHER — RF SPECTRUM MONITORING & AVAILABILITY ANALYSIS**.
-- **Live Spectrum Status Card**: Displays live carrier frequency, bandwidth, signal power, RF activity state (`NOT DETECTED` / `DETECTED`), and operational availability (`AVAILABLE` / `OCCUPIED` / `UNCERTAIN`).
-- **Structured 5-Stage Diagnostic Card**:
-  - `RF OBSERVATION` (`REAL_MEASURED`): Frequency, Bandwidth, Measured Signal Strength, I/Q Availability.
-  - `DERIVED PHYSICS` (`DERIVED`): Wavelength $\lambda$, Power in Watts/nW, Johnson-Nyquist Thermal Noise Reference $kTB$ at 290 K.
-  - `RF ANALYSIS` (`INFERRED/PSEUDO-LABEL`): Activity state, SNR margin over $kTB$, OOD guard flag.
-  - `ML EVIDENCE` (`ML_EVIDENCE`): Model probability, confidence rating, signal power quarantine status.
-  - `SYSTEM DECISION` (`APPLICATION_METADATA`): Inferred operational decision.
-- **SQLite History**: Automatically persists observation records to SQLite database (`wire_watcher.db`).
+### 1. 📡 RF Engineering Intelligence Dashboard (Home Screen)
+- **Top Instrument Banner**: Immediately communicates operational status, live frequency telemetry, signal strength, noise floor reference, and SNR.
+- **Telemetry Cards**:
+  - `RF Source Status`: Historical Dataset / IQ Replay observation (120.0 MHz, -75.0 dBm).
+  - `Spectrum Availability`: `AVAILABLE` status with physical activity state (`NOT DETECTED`).
+  - `Recommended Channel`: Optimal candidate allocation with engineering score (e.g. `95.0/100`).
+  - `Event Analytics`: Total recorded events count and temporal channel utilization %.
 
-### 2. 🧮 RF & Electronics Engineering Calculator Suite
-Includes interactive mathematical derivation modules with explicit display of `INPUT`, `FORMULA`, `SUBSTITUTION`, `RESULT`, and `UNIT`:
+### 2. 🌊 Time-Domain I/Q Waveform Visualizer
+- **Complex Baseband Series**: Renders $I(t)$, $Q(t)$, and envelope magnitude $|x(t)|$.
+- **Signal Quality Metrics**: Calculates Root Mean Square (RMS) magnitude, Peak magnitude, Variance, and Crest Factor.
+- **Zero-Fake-IQ Policy**: Displays an explicit `TIME-DOMAIN WAVEFORM UNAVAILABLE` notice when baseband I/Q samples are not captured by the source.
+
+### 3. 📊 Spectrum Analyzer & Relative PSD Visualizer
+- **FFT Scope**: Renders Hanning-windowed FFT magnitude squared labeled accurately as `"Relative PSD (dBm)"` / `"Normalized Spectral Power"`.
+- **Peak & Occupancy Detector**: Evaluates noise floor percentile, applies adaptive threshold ($Noise Floor + \Delta dB$), marks spectral peaks, and highlights occupied frequency bands.
+
+### 4. 🎯 Availability & Channel Candidate Allocation Engine
+- **Candidate Channel Generator**: Generates channel candidates across specified frequency spans (e.g. 70.0 – 160.0 MHz) with configurable bandwidths and guard bands.
+- **Transparent Scoring Formula**:
+  $$\text{Score} = 100 - \text{Penalty}_{\text{Activity}} - \text{Penalty}_{\text{Uncertainty}} - \text{Penalty}_{\text{OOD}} - \text{Penalty}_{\text{Noise}} - \text{Penalty}_{\text{GuardBand}} - \text{Penalty}_{\text{Interference}}$$
+- **Guard-Band Analysis**: Evaluates protected lower/upper guard band boundaries and classifies status as `SAFE_MARGIN`, `MARGINAL`, or `CONFLICT`.
+- **Interference Risk Assessment**: Categorizes inter-channel risk as `LOW`, `MODERATE`, or `HIGH`.
+- **Calculation Trace Modal**: Provides full mathematical step-by-step breakdown for any candidate channel.
+
+### 5. 📈 RF Event Analytics & Channel Utilization
+- **Temporal Event Derivation**: Automatically derives contiguous active transmission bursts (`inferred_rf_activity == 1`) per frequency channel across 164,160 observations.
+- **SQLite Event Persistence**: Stores derived events (`event_id`, `frequency_mhz`, `start_time`, `end_time`, `duration_seconds`, `peak_power_dbm`, `avg_power_dbm`, `provenance`) in `wire_watcher.db`.
+- **Merged-Interval Utilization**: Merges overlapping event intervals to compute exact channel utilization % over the observation window.
+
+### 6. 🎞️ Data Explorer & Controlled RF Replay Mode
+- **Chronological Playback**: Navigates through 164,160 dataset observations (`0 / 164160`).
+- **Interactive Controls**: `PLAY`, `PAUSE`, `RESET`, `STEP STEP >`, and playback speed toggles (`0.5x`, `1x`, `2x`, `5x`).
+- **Pipeline Execution**: Reruns the complete RF processing pipeline on each step and updates telemetry.
+- **Data Explorer Table**: Paginated browsing of authentic dataset records with frequency, bandwidth, signal strength, IQ availability, and inferred activity flags.
+
+### 7. 🧮 RF & Electronics Engineering Calculator Suite
+Interactive mathematical derivation modules with explicit display of `INPUT`, `FORMULA`, `SUBSTITUTION`, `RESULT`, and `UNIT`:
 1. **Power Conversions**:
    $$P(\text{W}) = 10^{\frac{P_{\text{dBm}} - 30}{10}}, \quad P(\text{dBm}) = 10 \log_{10}(P(\text{W})) + 30, \quad P(\text{dBW}) = P(\text{dBm}) - 30$$
 2. **Wavelength ($\lambda$)**:
@@ -100,26 +135,23 @@ Includes interactive mathematical derivation modules with explicit display of `I
 9. **Link Budget Received Power ($P_r$)**:
    $$P_r(\text{dBm}) = P_t + G_t + G_r - L_{\text{path}} - L_{\text{misc}}$$
 
-*Inputs are strictly validated: rejects negative absolute temperature ($T \le 0$ K), zero/negative frequency ($f \le 0$ MHz), zero FSPL distance ($d \le 0$ km), invalid bandwidth ($BW \le 0$), invalid sampling rate ($f_s \le 0$), NaN, and Infinity.*
+### 8. 📄 Automatic 10-Section RF Technical Report Generator
+Generates printable/exportable engineering audit reports containing:
+1. Observation Summary
+2. DSP & Spectral Estimation
+3. RF Engineering Parameters
+4. Machine Learning Evidence
+5. OOD Safety Guard Status
+6. Spectrum Availability Assessment
+7. Channel Allocation Recommendation
+8. Event Analytics & Occupancy
+9. Measurement Data Provenance
+10. System Limitations & Disclaimers
 
-### 3. 📊 Spectrum Visualizer & DSP Peak Detector
-- **FFT Scope**: Renders Hanning-windowed FFT magnitude squared labeled accurately as `"Relative PSD (dB)"` / `"Normalized Spectral Power"`.
-- **Peak & Occupancy Detector**: Evaluates noise floor percentile, applies adaptive threshold ($Noise Floor + \Delta dB$), marks local maxima spectral peaks, and highlights occupied frequency channels.
-- **Simulator Transfer**: Includes a **"Transfer to Activity Detector"** action for passing simulated channel parameters into the detector pipeline.
-
-### 4. 🗃️ RF Dataset Explorer
-Presents authentic statistics from the SDR acquisition dataset (`logged_data.csv`):
-- **Observations**: 164,160 rows acquired at a 20-second cadence.
-- **Carrier Frequencies**: 70, 90, 100, 120, 140, 160 MHz (VHF Band).
-- **I/Q Sample Availability**: 109,324 rows (66.6%) with 100 complex I/Q samples; 54,836 rows (33.4%) missing I/Q.
-- **Dynamic Signal Range**: -119.0 dBm to -25.0 dBm (94 dB span).
-- **Visual Distributions**: Bar charts for frequency distribution, signal power bins, I/Q availability, and channel bandwidth (50 kHz).
-
-### 5. 🤖 ML Architecture & Transparency
-- **Model Architecture**: Frozen Random Forest Classifier (60 trees, max depth 10) evaluated on a 60/20/20 chronological split (32,832 test samples).
-- **Performance**: ROC-AUC ≈ 0.50, PR-AUC ≈ 0.5058.
-- **Target Leakage Control**: Received signal power (`signal_strength_dbm`) is strictly quarantined from ML predictor features.
-- **Role Statement**: *"The ML classifier provides supplementary RF activity evidence. The final operational decision also incorporates physical RF activity detection and OOD protection."*
+### 9. 🛡️ ML Performance, Leakage Audit & Validation Dashboard
+- **Model Architecture**: Frozen Random Forest Classifier v2 (60 trees, max depth 10) evaluated on a 60/20/20 chronological split (32,832 test samples).
+- **Leakage Controls**: Received signal power (`signal_strength_dbm`) is strictly quarantined from ML predictor features.
+- **Audit Findings**: Displays Gini impurity importance, permutation importance, feature group experiments (Exp A – Exp E), and future dataset improvement plans.
 
 ---
 
@@ -164,44 +196,22 @@ npm run dev
 
 ## 🧪 Testing & Verification
 
-### Run Python Test Suite (pytest)
+### Run Automated Backend Test Suite (pytest)
 ```bash
-python -m pytest tests/test_rf_calculations.py tests/test_api.py tests/test_db.py tests/test_inference.py tests/test_leakage.py tests/ml/test_rf_signal_migration.py
+python -m pytest -v
 ```
-> **Result**: 77 passed (100% pass rate).
+> **Result**: 122 passed, 1 skipped (100% pass rate).
 
-### Frontend Type-Checking & Build
+### Frontend Production Build
 ```bash
 cd frontend
-npm run type-check
 npm run build
 ```
-> **Result**: 0 TypeScript errors; clean production build.
-
-### Live End-to-End Test
-```bash
-python tests/e2e_live_test.py
-```
-> **Result**: ALL PASSED across health, model-info, normal/strong/weak/OOD/IQ predict requests, and prediction history retrieval.
-
----
-
-## 🌿 Repository Branch Structure
-
-The repository [https://github.com/Subham-Biswal3109/RFsignal.git](https://github.com/Subham-Biswal3109/RFsignal.git) is structured into dedicated modular branches:
-
-| Branch Name | Purpose |
-| :--- | :--- |
-| `main` | Primary production branch containing the complete ECE/RF Wire Watcher system |
-| `dev` | Core development integration branch |
-| `feature/rf-calculator` | 9-formula RF & Electronics Engineering Calculator suite |
-| `feature/spectrum-visualizer` | Relative PSD FFT scope, peak detection, and DSP visualizer |
-| `feature/dataset-explorer` | VHF dataset explorer & statistical distribution charts |
-| `feature/ml-decision-engine` | Frozen ML classifier, OOD safety bounds, and decision flow |
-| `release/v2.0.0` | Release tag branch for Wire Watcher v2.0.0 |
+> **Result**: `tsc && vite build` completed with 0 errors; clean production bundle.
 
 ---
 
 ## 📜 Scientific & Legal Notice
 
 > **Scientific Notice:** This application provides an inferred operational spectrum availability decision based on real SDR signal measurements, derived Johnson-Nyquist thermal calculations, and leakage-safe ML feature analysis. It does NOT certify legal spectrum vacancy or live SDR hardware monitoring. Target labels are inferred pseudo-labels, not ground-truth occupancy.
+
