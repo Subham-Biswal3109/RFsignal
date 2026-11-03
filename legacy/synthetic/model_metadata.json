@@ -1,0 +1,122 @@
+{
+  "model_version": "v1.0",
+  "training_date": "2026-08-16T13:36:01.667585",
+  "dataset_name": "spectrum_occupancy_synthetic_33600.csv",
+  "dataset_type": "synthetic",
+  "training_samples": 16800,
+  "validation_samples": 8400,
+  "test_samples": 8400,
+  "real_rf_validation": false,
+  "data_source": "Synthetic",
+  "features": [
+    "start_frequency_mhz",
+    "end_frequency_mhz",
+    "bandwidth_mhz",
+    "hour_of_day",
+    "day_of_week",
+    "signal_power_dbm",
+    "noise_floor_dbm",
+    "snr_db",
+    "state",
+    "city",
+    "service_type"
+  ],
+  "preprocessing": "StandardScaler, OneHotEncoder",
+  "algorithm": "RandomForestClassifier",
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 20,
+    "min_samples_split": 5,
+    "min_samples_leaf": 1,
+    "class_weight": "balanced"
+  },
+  "calibration_method": "None (Uncalibrated)",
+  "best_threshold": 0.40000000000000013,
+  "metrics": {
+    "accuracy": 0.9276190476190476,
+    "balanced_accuracy": 0.731625,
+    "precision": 0.33225806451612905,
+    "recall": 0.515,
+    "f1": 0.403921568627451,
+    "roc_auc": 0.9061239062499999,
+    "pr_auc": 0.33807908846468887,
+    "brier_score": 0.04311706507266406,
+    "false_available": 414,
+    "false_occupied": 194
+  },
+  "feature_importances": {
+    "snr_db": 0.36276778511986163,
+    "signal_power_dbm": 0.22301704441343198,
+    "noise_floor_dbm": 0.07295857209962972,
+    "hour_of_day": 0.0716854580922625,
+    "day_of_week": 0.05318353403615135,
+    "start_frequency_mhz": 0.03850216520297021,
+    "end_frequency_mhz": 0.037606322957620945,
+    "bandwidth_mhz": 0.026123243706677853,
+    "state_Telangana": 0.023731281237058813,
+    "city_Hyderabad": 0.019087255144417115,
+    "city_Chennai": 0.014149360288620167,
+    "state_Tamil Nadu": 0.011737796767212693,
+    "state_Maharashtra": 0.010512592644647992,
+    "city_Jaipur": 0.008631313880022364,
+    "state_Rajasthan": 0.007536209396783218
+  },
+  "permutation_importances": {
+    "snr_db": 0.29416610171648055,
+    "signal_power_dbm": 0.25321932760833227,
+    "noise_floor_dbm": 0.012038693966665515,
+    "end_frequency_mhz": 0.007504519192535431,
+    "start_frequency_mhz": 0.005793582392111174,
+    "day_of_week": 0.003219498562452461,
+    "bandwidth_mhz": 0.0010277382229733623,
+    "state_Maharashtra": 0.0,
+    "state_Rajasthan": 0.0,
+    "state_Tamil Nadu": 0.0,
+    "state_Telangana": 0.0,
+    "city_Chennai": 0.0,
+    "city_Hyderabad": 0.0,
+    "city_Jaipur": 0.0,
+    "city_Mumbai": 0.0
+  },
+  "training_bounds": {
+    "start_frequency_mhz": {
+      "p1": 470.0,
+      "p99": 66000.0
+    },
+    "end_frequency_mhz": {
+      "p1": 585.0,
+      "p99": 71000.0
+    },
+    "bandwidth_mhz": {
+      "p1": 1.8,
+      "p99": 20.0
+    },
+    "hour_of_day": {
+      "p1": 0.0,
+      "p99": 23.0
+    },
+    "day_of_week": {
+      "p1": 0.0,
+      "p99": 6.0
+    },
+    "signal_power_dbm": {
+      "p1": -91.98409,
+      "p99": -68.42987999999998
+    },
+    "noise_floor_dbm": {
+      "p1": -107.844,
+      "p99": -96.27096999999999
+    },
+    "snr_db": {
+      "p1": 11.42999,
+      "p99": 31.89406000000001
+    }
+  },
+  "ood_methodology": "Strict boundary check against 1st and 99th percentile of training distributions for SNR and Signal Power.",
+  "limitations": [
+    "Training data is strictly synthetic.",
+    "Categorical features may dominate unpredictably if not representing real propagation physics.",
+    "No real RF occupancy measurements were used.",
+    "Model serves as a pipeline prototype for spectrum availability estimation."
+  ]
+}

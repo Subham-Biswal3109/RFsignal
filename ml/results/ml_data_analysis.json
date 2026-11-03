@@ -1,0 +1,162 @@
+{
+  "analysis_timestamp": "2026-08-31T20:16:52.410196+00:00",
+  "dataset_name": "RF Signal Data",
+  "processed_file": "F:\\MYSQL\\Wire_Watcher_RF_Activity_v2\\ml\\data\\processed\\rf_signal_activity.csv",
+  "total_observations": 164160,
+  "carrier_frequencies_mhz": [
+    70.0,
+    90.0,
+    100.0,
+    120.0,
+    140.0,
+    160.0
+  ],
+  "bandwidths_khz": [
+    10.0,
+    50.0,
+    100.0,
+    200.0,
+    500.0,
+    1000.0
+  ],
+  "iq_sample_availability": {
+    "present_count": 109324,
+    "present_percentage": 66.6,
+    "missing_count": 54836,
+    "missing_percentage": 33.4
+  },
+  "signal_strength_distribution": {
+    "min_dbm": -100.0,
+    "max_dbm": 0.0,
+    "mean_dbm": -49.93,
+    "std_dbm": 29.19
+  },
+  "per_frequency_dynamics": {
+    "70.0": {
+      "sample_count": 27247,
+      "median_signal_strength_dbm": -50.0,
+      "mean_signal_strength_dbm": -49.9,
+      "std_signal_strength_dbm": 29.3,
+      "signal_autocorr_lag1": -0.00962,
+      "signal_autocorr_lag2": 0.00225,
+      "signal_autocorr_lag5": -0.00195,
+      "target_autocorr_lag1": -0.00647
+    },
+    "90.0": {
+      "sample_count": 27051,
+      "median_signal_strength_dbm": -50.0,
+      "mean_signal_strength_dbm": -50.0,
+      "std_signal_strength_dbm": 29.29,
+      "signal_autocorr_lag1": 0.0091,
+      "signal_autocorr_lag2": 0.00739,
+      "signal_autocorr_lag5": -0.00974,
+      "target_autocorr_lag1": 0.00551
+    },
+    "100.0": {
+      "sample_count": 27526,
+      "median_signal_strength_dbm": -50.0,
+      "mean_signal_strength_dbm": -49.84,
+      "std_signal_strength_dbm": 29.09,
+      "signal_autocorr_lag1": 0.00828,
+      "signal_autocorr_lag2": 0.00321,
+      "signal_autocorr_lag5": 0.00043,
+      "target_autocorr_lag1": -0.00036
+    },
+    "120.0": {
+      "sample_count": 27285,
+      "median_signal_strength_dbm": -50.0,
+      "mean_signal_strength_dbm": -50.05,
+      "std_signal_strength_dbm": 29.15,
+      "signal_autocorr_lag1": 0.00428,
+      "signal_autocorr_lag2": 0.00134,
+      "signal_autocorr_lag5": -0.01471,
+      "target_autocorr_lag1": 0.00975
+    },
+    "140.0": {
+      "sample_count": 27509,
+      "median_signal_strength_dbm": -50.0,
+      "mean_signal_strength_dbm": -49.89,
+      "std_signal_strength_dbm": 29.1,
+      "signal_autocorr_lag1": 0.00263,
+      "signal_autocorr_lag2": 0.00421,
+      "signal_autocorr_lag5": -0.00355,
+      "target_autocorr_lag1": 0.00127
+    },
+    "160.0": {
+      "sample_count": 27542,
+      "median_signal_strength_dbm": -50.0,
+      "mean_signal_strength_dbm": -49.91,
+      "std_signal_strength_dbm": 29.21,
+      "signal_autocorr_lag1": -0.00193,
+      "signal_autocorr_lag2": -0.00347,
+      "signal_autocorr_lag5": 0.00545,
+      "target_autocorr_lag1": -0.00381
+    }
+  },
+  "iq_features_statistics": {
+    "iq_rms_magnitude": {
+      "mean": 0.81606,
+      "std": 0.02583,
+      "p10": 0.78291,
+      "p50": 0.8163,
+      "p90": 0.84908,
+      "skewness": -0.04506,
+      "kurtosis": 0.01232
+    },
+    "iq_magnitude_variance": {
+      "mean": 0.08034,
+      "std": 0.00977,
+      "p10": 0.06801,
+      "p50": 0.0801,
+      "p90": 0.09301,
+      "skewness": 0.16719,
+      "kurtosis": 0.07305
+    },
+    "iq_peak_magnitude": {
+      "mean": 1.32735,
+      "std": 0.04458,
+      "p10": 1.26632,
+      "p50": 1.33205,
+      "p90": 1.38203,
+      "skewness": -0.56474,
+      "kurtosis": 0.07416
+    },
+    "iq_crest_factor": {
+      "mean": 1.62773,
+      "std": 0.06511,
+      "p10": 1.54475,
+      "p50": 1.62694,
+      "p90": 1.71164,
+      "skewness": 0.09907,
+      "kurtosis": -0.02002
+    },
+    "iq_phase_concentration": {
+      "mean": 0.08861,
+      "std": 0.04609,
+      "p10": 0.03274,
+      "p50": 0.08337,
+      "p90": 0.15127,
+      "skewness": 0.6234,
+      "kurtosis": 0.22182
+    },
+    "iq_spectral_entropy": {
+      "mean": 0.9089,
+      "std": 0.01161,
+      "p10": 0.89371,
+      "p50": 0.90952,
+      "p90": 0.92329,
+      "skewness": -0.33324,
+      "kurtosis": 0.23631
+    },
+    "iq_spectral_peak_ratio": {
+      "mean": 0.05219,
+      "std": 0.01178,
+      "p10": 0.0394,
+      "p50": 0.0501,
+      "p90": 0.06764,
+      "skewness": 1.19048,
+      "kurtosis": 2.35936
+    }
+  },
+  "temporal_coherence_finding": "Near-zero autocorrelation across all channels (|lag-1| < 0.01) indicates that temporal observations behave as independent, identically distributed measurement events."
+}

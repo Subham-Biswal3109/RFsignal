@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Wire Watcher CSS custom properties */
+:root {
+  --color-available: 16 185 129;   /* emerald-500 */
+  --color-occupied:  239 68 68;    /* red-500 */
+  --color-warning:   245 158 11;   /* amber-500 */
+}
+
+/* Ensure all input text is sharp, high-contrast, and clearly visible */
+input, select, textarea {
+  color: #0f172a;
+}
+.dark input, .dark select, .dark textarea {
+  color: #f8fafc;
+}
+
+/* Convenience text utilities referenced in components */
+.text-available { color: rgb(var(--color-available)); }
+.text-occupied  { color: rgb(var(--color-occupied)); }
+.text-warning   { color: rgb(var(--color-warning)); }
+.bg-available\/12 { background-color: rgb(var(--color-available) / 0.12); }
+.bg-occupied\/12  { background-color: rgb(var(--color-occupied)  / 0.12); }
+.border-available\/35 { border-color: rgb(var(--color-available) / 0.35); }
+.border-occupied\/35  { border-color: rgb(var(--color-occupied)  / 0.35); }
+
+/* label-caps: small uppercase label */
+.label-caps {
+  @apply text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300;
+}
+
+/* numeric: monospaced numbers */
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* panel shared surface */
+.panel {
+  @apply rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Wire Watcher Pipeline & Flow Animation Keyframes
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes rf-dash-flow {
+  0% {
+    stroke-dashoffset: 40;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rf-dash-flow-reverse {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 40;
+  }
+}
+
+@keyframes rf-particle-glow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes rf-stage-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 2px rgba(56, 189, 248, 0.4);
+  }
+}
+
+@keyframes rf-beam-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes rf-sine-wave {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-rf-dash {
+  animation: rf-dash-flow 1.6s linear infinite;
+}
+
+.animate-rf-dash-fast {
+  animation: rf-dash-flow 0.8s linear infinite;
+}
+
+.animate-rf-pulse-glow {
+  animation: rf-particle-glow 2s ease-in-out infinite;
+}
+
+.animate-rf-sine {
+  animation: rf-sine-wave 3s linear infinite;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-rf-dash,
+  .animate-rf-dash-fast,
+  .animate-rf-pulse-glow,
+  .animate-rf-sine {
+    animation: none !important;
+  }
+}
+

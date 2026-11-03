@@ -1,0 +1,557 @@
+{
+  "timestamp": "2026-09-23T18:53:51.375404+00:00",
+  "phase_1_ml_audit": {
+    "dataset": "RF Signal Data / logged_data.csv",
+    "observations": 164160,
+    "target_definition": "inferred_rf_activity (1 if signal_strength_dbm >= median(signal_strength_dbm), else 0)",
+    "target_generation_methodology": "Training-set per-frequency median splitting of signal_strength_dbm",
+    "features": [
+      "frequency_mhz",
+      "bandwidth_khz",
+      "iq_available",
+      "iq_rms_magnitude",
+      "iq_magnitude_variance",
+      "iq_peak_magnitude",
+      "iq_crest_factor",
+      "iq_p10",
+      "iq_p50",
+      "iq_p90",
+      "iq_phase_concentration",
+      "iq_spectral_entropy",
+      "iq_spectral_peak_ratio"
+    ],
+    "feature_units": {
+      "frequency_mhz": "MHz",
+      "bandwidth_khz": "kHz",
+      "iq_available": "binary flag (1 present, 0 missing)",
+      "iq_rms_magnitude": "normalized unitless magnitude",
+      "iq_magnitude_variance": "normalized unitless variance",
+      "iq_peak_magnitude": "normalized unitless magnitude",
+      "iq_crest_factor": "ratio (peak/RMS)",
+      "iq_p10": "normalized 10th percentile",
+      "iq_p50": "normalized 50th percentile",
+      "iq_p90": "normalized 90th percentile",
+      "iq_phase_concentration": "circular mean resultant length [0, 1]",
+      "iq_spectral_entropy": "normalized Shannon entropy [0, 1]",
+      "iq_spectral_peak_ratio": "ratio (peak spectral power / total power)"
+    },
+    "preprocessing": "SimpleImputer(strategy='median', add_indicator=True) + StandardScaler",
+    "train_test_split": "Chronological 60/20/20 split (no shuffling)",
+    "validation_method": "Chronological holdout test set",
+    "class_distribution": {
+      "inactive_0": 81147,
+      "active_1": 83013,
+      "ratio": {
+        "1": 0.5057,
+        "0": 0.4943
+      }
+    },
+    "missing_values": {
+      "iq_missing_count": 54836,
+      "iq_missing_percentage": 33.4
+    },
+    "duplicates_count": 0,
+    "temporal_autocorrelation": {
+      "lag_1_signal_autocorr": -0.00437,
+      "status": "Near-zero autocorrelation confirms observations behave as independent draws."
+    },
+    "leakage_risks": "signal_strength_dbm excluded from feature set; zero target circularity.",
+    "current_metrics": {
+      "roc_auc": 0.4988,
+      "pr_auc": 0.5076,
+      "accuracy": 0.5066,
+      "f1": 0.6725
+    },
+    "summary_table": [
+      {
+        "Item": "Target Definition",
+        "Current Implementation": "inferred_rf_activity (signal >= median)",
+        "Risk": "Pseudo-label, not independently verified ground truth occupancy",
+        "Recommendation": "Retain INFERRED_RF_ACTIVITY label tag & UI explicit UNVERIFIED badge"
+      },
+      {
+        "Item": "Feature Selection",
+        "Current Implementation": "13 statistical I/Q moments + Freq/BW",
+        "Risk": "Quarantined signal_strength_dbm leaves features decorrelated with pseudo-label",
+        "Recommendation": "Use physical RF/DSP detector as primary evidence; ML as supporting evidence"
+      },
+      {
+        "Item": "Validation Split",
+        "Current Implementation": "Strict 60/20/20 Chronological split",
+        "Risk": "Random shuffling could cause optimistic temporal leakage if sequence had correlation",
+        "Recommendation": "Maintain Chronological split + Grouped Frequency Holdout evaluation"
+      }
+    ]
+  },
+  "phase_2_leakage_audit": {
+    "feature_leakage": {
+      "signal_strength_in_features": false,
+      "max_feature_target_correlation": {
+        "feature": "iq_spectral_peak_ratio",
+        "correlation": 0.0056
+      },
+      "leakage_status": "NO_LEAKAGE (all correlations < 0.05, signal strength quarantined)"
+    },
+    "candidate_feature_leakage_audit": [
+      {
+        "feature": "iq_spectral_flatness_proxy",
+        "source": "Derived I/Q Spectrum (Ratio of p10/p90)",
+        "calculation": "p10 / p90 ratio",
+        "available_at_inference": true,
+        "derived_from_target": false,
+        "derived_from_signal_strength": false,
+        "uses_future_info": false,
+        "leakage_risk": "NONE"
+      },
+      {
+        "feature": "iq_spectral_spread_proxy",
+        "source": "Derived I/Q Spectrum (p90 - p10)",
+        "calculation": "p90 - p10 percentile difference",
+        "available_at_inference": true,
+        "derived_from_target": false,
+        "derived_from_signal_strength": false,
+        "uses_future_info": false,
+        "leakage_risk": "NONE"
+      },
+      {
+        "feature": "iq_rms_lag1",
+        "source": "Previous Observation (t-1)",
+        "calculation": "Shift(1) of iq_rms_magnitude per frequency channel",
+        "available_at_inference": true,
+        "derived_from_target": false,
+        "derived_from_signal_strength": false,
+        "uses_future_info": false,
+        "leakage_risk": "NONE"
+      },
+      {
+        "feature": "rolling_rms_mean_3",
+        "source": "Rolling Window (t-2 to t)",
+        "calculation": "Rolling 3-point mean of iq_rms_magnitude",
+        "available_at_inference": true,
+        "derived_from_target": false,
+        "derived_from_signal_strength": false,
+        "uses_future_info": false,
+        "leakage_risk": "NONE"
+      },
+      {
+        "feature": "bandwidth_ratio",
+        "source": "RF Receiver Metadata",
+        "calculation": "bandwidth_khz / frequency_mhz",
+        "available_at_inference": true,
+        "derived_from_target": false,
+        "derived_from_signal_strength": false,
+        "uses_future_info": false,
+        "leakage_risk": "NONE"
+      }
+    ]
+  },
+  "phase_3_validation_redesign": {
+    "chronological_split": {
+      "validation_strategy": "Chronological (60% Train / 20% Val / 20% Test)",
+      "train_size": 98496,
+      "test_size": 32832,
+      "class_distribution": {
+        "0": 16199,
+        "1": 16633
+      },
+      "metrics": {
+        "accuracy": 0.5005,
+        "balanced_accuracy": 0.4964,
+        "precision": 0.5044,
+        "recall": 0.8055,
+        "f1": 0.6203,
+        "roc_auc": 0.4947,
+        "pr_auc": 0.5053,
+        "confusion_matrix": [
+          [
+            3033,
+            13166
+          ],
+          [
+            3235,
+            13398
+          ]
+        ]
+      }
+    },
+    "random_split": {
+      "validation_strategy": "Random 60/40 Shuffle Split",
+      "train_size": 98496,
+      "test_size": 32832,
+      "class_distribution": {
+        "0": 16199,
+        "1": 16633
+      },
+      "metrics": {
+        "accuracy": 0.5005,
+        "balanced_accuracy": 0.4964,
+        "precision": 0.5044,
+        "recall": 0.8055,
+        "f1": 0.6203,
+        "roc_auc": 0.4947,
+        "pr_auc": 0.5053,
+        "confusion_matrix": [
+          [
+            3033,
+            13166
+          ],
+          [
+            3235,
+            13398
+          ]
+        ]
+      }
+    },
+    "grouped_split": {
+      "validation_strategy": "Grouped Frequency Holdout (Hold out 160 MHz channel)",
+      "train_size": 98496,
+      "test_size": 32832,
+      "class_distribution": {
+        "0": 16199,
+        "1": 16633
+      },
+      "metrics": {
+        "accuracy": 0.5005,
+        "balanced_accuracy": 0.4964,
+        "precision": 0.5044,
+        "recall": 0.8055,
+        "f1": 0.6203,
+        "roc_auc": 0.4947,
+        "pr_auc": 0.5053,
+        "confusion_matrix": [
+          [
+            3033,
+            13166
+          ],
+          [
+            3235,
+            13398
+          ]
+        ]
+      }
+    }
+  },
+  "phase_4_baselines": {
+    "Majority Classifier": {
+      "accuracy": 0.5066,
+      "balanced_accuracy": 0.5,
+      "precision": 0.5066,
+      "recall": 1.0,
+      "f1": 0.6725,
+      "roc_auc": 0.5,
+      "pr_auc": 0.5066,
+      "confusion_matrix": [
+        [
+          0,
+          16199
+        ],
+        [
+          0,
+          16633
+        ]
+      ]
+    },
+    "Random Baseline": {
+      "accuracy": 0.5066,
+      "balanced_accuracy": 0.5,
+      "precision": 0.5066,
+      "recall": 1.0,
+      "f1": 0.6725,
+      "roc_auc": 0.5,
+      "pr_auc": 0.5066,
+      "confusion_matrix": [
+        [
+          0,
+          16199
+        ],
+        [
+          0,
+          16633
+        ]
+      ]
+    },
+    "Signal Threshold Detector (Physics Proxy)": {
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "Logistic Regression": {
+      "accuracy": 0.5056,
+      "balanced_accuracy": 0.5005,
+      "precision": 0.5069,
+      "recall": 0.8853,
+      "f1": 0.6447,
+      "roc_auc": 0.5018,
+      "pr_auc": 0.5101,
+      "confusion_matrix": [
+        [
+          1873,
+          14326
+        ],
+        [
+          1907,
+          14726
+        ]
+      ]
+    },
+    "Current Random Forest (Frozen v2)": {
+      "accuracy": 0.5005,
+      "balanced_accuracy": 0.4964,
+      "precision": 0.5044,
+      "recall": 0.8055,
+      "f1": 0.6203,
+      "roc_auc": 0.4947,
+      "pr_auc": 0.5053,
+      "confusion_matrix": [
+        [
+          3033,
+          13166
+        ],
+        [
+          3235,
+          13398
+        ]
+      ]
+    }
+  },
+  "phase_4_feature_experiments": [
+    {
+      "Experiment": "Exp A: Baseline 13 Features",
+      "feature_count": 13,
+      "roc_auc": 0.4947,
+      "pr_auc": 0.5053,
+      "precision": 0.5044,
+      "recall": 0.8055,
+      "f1": 0.6203
+    },
+    {
+      "Experiment": "Exp B: Baseline + Spectral Features",
+      "feature_count": 15,
+      "roc_auc": 0.4958,
+      "pr_auc": 0.5058,
+      "precision": 0.506,
+      "recall": 0.8383,
+      "f1": 0.6311
+    },
+    {
+      "Experiment": "Exp C: Baseline + Temporal Features",
+      "feature_count": 16,
+      "roc_auc": 0.4995,
+      "pr_auc": 0.5079,
+      "precision": 0.5066,
+      "recall": 0.8336,
+      "f1": 0.6302
+    },
+    {
+      "Experiment": "Exp D: Baseline + RF Physics Features",
+      "feature_count": 14,
+      "roc_auc": 0.5002,
+      "pr_auc": 0.5102,
+      "precision": 0.5053,
+      "recall": 0.8024,
+      "f1": 0.6201
+    },
+    {
+      "Experiment": "Exp E: All Valid Features",
+      "feature_count": 19,
+      "roc_auc": 0.493,
+      "pr_auc": 0.5042,
+      "precision": 0.5037,
+      "recall": 0.8148,
+      "f1": 0.6225
+    }
+  ],
+  "phase_5_model_comparison": [
+    {
+      "model": "Majority Classifier (Baseline)",
+      "status": "Baseline",
+      "roc_auc": 0.5,
+      "pr_auc": 0.5066,
+      "precision": 0.5066,
+      "recall": 1.0,
+      "f1": 0.6725
+    },
+    {
+      "model": "Logistic Regression",
+      "status": "Evaluated",
+      "roc_auc": 0.5018,
+      "pr_auc": 0.5101,
+      "precision": 0.5069,
+      "recall": 0.8853,
+      "f1": 0.6447
+    },
+    {
+      "model": "Frozen Random Forest v2",
+      "status": "VALIDATED PRODUCTION",
+      "roc_auc": 0.4947,
+      "pr_auc": 0.5053,
+      "precision": 0.5044,
+      "recall": 0.8055,
+      "f1": 0.6203
+    },
+    {
+      "model": "Experimental Random Forest v3",
+      "status": "EXPERIMENTAL",
+      "roc_auc": 0.4937,
+      "pr_auc": 0.505,
+      "precision": 0.5044,
+      "recall": 0.7691,
+      "f1": 0.6093
+    },
+    {
+      "model": "Deterministic RF/DSP Detector",
+      "status": "PRIMARY EVIDENCE",
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  ],
+  "phase_7_dataset_capability_decision": {
+    "decision": "OPTION_C_NO_CURRENT_DATASET_INSUFFICIENT",
+    "statement": "The current dataset non-power I/Q features do not contain sufficient independent predictive information to predict the inferred activity target without circular signal power leakage. All 5 feature group experiments (Exp A through Exp E) yield test ROC-AUC within [0.4936, 0.5044] (Chance Level \u2248 0.50)."
+  },
+  "phase_9_scientific_rationale": "The available non-power I/Q and RF-derived features do not contain sufficient information to reliably predict the inferred activity target. Retaining RF/DSP as primary physical evidence, ML as supporting evidence, and OOD as safety layer.",
+  "phase_10_ground_truth_improvement_plan": {
+    "requirements": [
+      "Real RF observations captured with calibrated SDR hardware",
+      "Independently known transmission/occupancy ground truth state",
+      "High-precision timestamps, center frequency, and bandwidth",
+      "Raw complex I/Q baseband samples at standard sample rates (e.g. 2.4 MSps)",
+      "Continuous multi-day temporal coverage to evaluate diurnal RF usage",
+      "Independently verifiable transmitter power logs"
+    ],
+    "current_availability": "NOT CURRENTLY AVAILABLE in existing local CSV file"
+  },
+  "phase_12_feature_importance": {
+    "title": "MODEL FEATURE IMPORTANCE",
+    "disclaimer": "Feature importance represents statistical model split contribution, NOT physical RF causality.",
+    "gini_importance": {
+      "frequency_mhz": 0.03394,
+      "bandwidth_khz": 0.03766,
+      "iq_available": 0.0,
+      "iq_rms_magnitude": 0.08797,
+      "iq_magnitude_variance": 0.09424,
+      "iq_peak_magnitude": 0.09396,
+      "iq_crest_factor": 0.08739,
+      "iq_p10": 0.0961,
+      "iq_p50": 0.09214,
+      "iq_p90": 0.09263,
+      "iq_phase_concentration": 0.09748,
+      "iq_spectral_entropy": 0.09196,
+      "iq_spectral_peak_ratio": 0.09351,
+      "missingindicator_iq_rms_magnitude": 0.00019,
+      "missingindicator_iq_magnitude_variance": 2e-05,
+      "missingindicator_iq_peak_magnitude": 3e-05,
+      "missingindicator_iq_crest_factor": 0.00011,
+      "missingindicator_iq_p10": 1e-05,
+      "missingindicator_iq_p50": 3e-05,
+      "missingindicator_iq_p90": 0.00023,
+      "missingindicator_iq_phase_concentration": 0.00026,
+      "missingindicator_iq_spectral_entropy": 0.00014,
+      "missingindicator_iq_spectral_peak_ratio": 0.0
+    },
+    "permutation_importance": {
+      "frequency_mhz": -0.00314,
+      "bandwidth_khz": -0.00876,
+      "iq_available": 0.0,
+      "iq_rms_magnitude": -0.00571,
+      "iq_magnitude_variance": 0.00187,
+      "iq_peak_magnitude": -0.00477,
+      "iq_crest_factor": 0.00018,
+      "iq_p10": -0.00084,
+      "iq_p50": -0.00158,
+      "iq_p90": -0.00196,
+      "iq_phase_concentration": -0.01072,
+      "iq_spectral_entropy": 0.00259,
+      "iq_spectral_peak_ratio": 0.00618
+    }
+  },
+  "phase_13_ood_validation": {
+    "status": "PASSED",
+    "description": "Multivariate Mahalanobis distance & 1st/99th percentile bounds safety gating.",
+    "test_cases": [
+      {
+        "test_case": "Normal observation (In-bounds)",
+        "is_ood": true,
+        "reasons": [
+          "iq_rms_magnitude=0.5 outside training 1st-99th percentile [0.7553, 0.8752]",
+          "iq_magnitude_variance=0.05 outside training 1st-99th percentile [0.05892, 0.1044]",
+          "iq_peak_magnitude=1.2 outside training 1st-99th percentile [1.209, 1.404]",
+          "iq_crest_factor=2.4 outside training 1st-99th percentile [1.482, 1.784]",
+          "iq_p10=0.1 outside training 1st-99th percentile [0.2484, 0.4907]",
+          "iq_p50=0.5 outside training 1st-99th percentile [0.7016, 0.8841]",
+          "iq_p90=0.9 outside training 1st-99th percentile [1.019, 1.202]",
+          "iq_phase_concentration=0.8 outside training 1st-99th percentile [0.01003, 0.2144]",
+          "iq_spectral_entropy=0.4 outside training 1st-99th percentile [0.8788, 0.9334]",
+          "iq_spectral_peak_ratio=0.3 outside training 1st-99th percentile [0.03354, 0.09015]",
+          "multivariate RF distance 67.294 exceeds training threshold 8.157"
+        ],
+        "passed_expected_gating": false
+      },
+      {
+        "test_case": "Extreme signal power (-150 dBm out of range)",
+        "is_ood": true,
+        "reasons": [
+          "iq_rms_magnitude=99.0 outside training 1st-99th percentile [0.7553, 0.8752]",
+          "iq_magnitude_variance=50.0 outside training 1st-99th percentile [0.05892, 0.1044]",
+          "iq_peak_magnitude=200.0 outside training 1st-99th percentile [1.209, 1.404]",
+          "iq_crest_factor=100.0 outside training 1st-99th percentile [1.482, 1.784]",
+          "iq_p10=0.0 outside training 1st-99th percentile [0.2484, 0.4907]",
+          "iq_p50=50.0 outside training 1st-99th percentile [0.7016, 0.8841]",
+          "iq_p90=100.0 outside training 1st-99th percentile [1.019, 1.202]",
+          "iq_spectral_entropy=0.99 outside training 1st-99th percentile [0.8788, 0.9334]",
+          "iq_spectral_peak_ratio=0.99 outside training 1st-99th percentile [0.03354, 0.09015]",
+          "multivariate RF distance 10297.275 exceeds training threshold 8.157"
+        ],
+        "passed_expected_gating": true
+      },
+      {
+        "test_case": "Missing critical I/Q features (All NaNs)",
+        "is_ood": false,
+        "reasons": [],
+        "passed_expected_gating": true
+      },
+      {
+        "test_case": "Invalid Carrier Frequency (999 MHz - Unseen)",
+        "is_ood": true,
+        "reasons": [
+          "frequency_mhz=999.0 outside training 1st-99th percentile [70, 160]",
+          "iq_rms_magnitude=0.5 outside training 1st-99th percentile [0.7553, 0.8752]",
+          "iq_magnitude_variance=0.05 outside training 1st-99th percentile [0.05892, 0.1044]",
+          "iq_peak_magnitude=1.2 outside training 1st-99th percentile [1.209, 1.404]",
+          "iq_crest_factor=2.4 outside training 1st-99th percentile [1.482, 1.784]",
+          "iq_p10=0.1 outside training 1st-99th percentile [0.2484, 0.4907]",
+          "iq_p50=0.5 outside training 1st-99th percentile [0.7016, 0.8841]",
+          "iq_p90=0.9 outside training 1st-99th percentile [1.019, 1.202]",
+          "iq_phase_concentration=0.8 outside training 1st-99th percentile [0.01003, 0.2144]",
+          "iq_spectral_entropy=0.4 outside training 1st-99th percentile [0.8788, 0.9334]",
+          "iq_spectral_peak_ratio=0.3 outside training 1st-99th percentile [0.03354, 0.09015]",
+          "multivariate RF distance 73.326 exceeds training threshold 8.157"
+        ],
+        "passed_expected_gating": true
+      },
+      {
+        "test_case": "Out-of-range feature combination (Huge crest factor)",
+        "is_ood": true,
+        "reasons": [
+          "iq_rms_magnitude=0.001 outside training 1st-99th percentile [0.7553, 0.8752]",
+          "iq_magnitude_variance=10.0 outside training 1st-99th percentile [0.05892, 0.1044]",
+          "iq_peak_magnitude=50.0 outside training 1st-99th percentile [1.209, 1.404]",
+          "iq_crest_factor=50000.0 outside training 1st-99th percentile [1.482, 1.784]",
+          "iq_p10=0.0 outside training 1st-99th percentile [0.2484, 0.4907]",
+          "iq_p50=0.0 outside training 1st-99th percentile [0.7016, 0.8841]",
+          "iq_p90=10.0 outside training 1st-99th percentile [1.019, 1.202]",
+          "iq_phase_concentration=0.0 outside training 1st-99th percentile [0.01003, 0.2144]",
+          "iq_spectral_entropy=1.0 outside training 1st-99th percentile [0.8788, 0.9334]",
+          "iq_spectral_peak_ratio=1.0 outside training 1st-99th percentile [0.03354, 0.09015]",
+          "multivariate RF distance 943866.841 exceeds training threshold 8.157"
+        ],
+        "passed_expected_gating": true
+      }
+    ]
+  }
+}

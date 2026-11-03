@@ -1,0 +1,392 @@
+{
+  "audit_timestamp": "2026-08-31T20:16:56.626458+00:00",
+  "features": [
+    {
+      "feature_name": "frequency_mhz",
+      "provenance_category": "REAL_MEASURED",
+      "pearson_correlation_with_target": -0.003472,
+      "univariate_roc_auc": 0.5019,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "bandwidth_khz",
+      "provenance_category": "REAL_MEASURED",
+      "pearson_correlation_with_target": -0.001213,
+      "univariate_roc_auc": 0.5005,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_available",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": -0.00145,
+      "univariate_roc_auc": 0.5007,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_rms_magnitude",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.001102,
+      "univariate_roc_auc": 0.5001,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_magnitude_variance",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.00397,
+      "univariate_roc_auc": 0.5016,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_peak_magnitude",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": -0.005132,
+      "univariate_roc_auc": 0.5029,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_crest_factor",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": -0.005296,
+      "univariate_roc_auc": 0.5029,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_p10",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": -0.002441,
+      "univariate_roc_auc": 0.5006,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_p50",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.001187,
+      "univariate_roc_auc": 0.5001,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_p90",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.00151,
+      "univariate_roc_auc": 0.5011,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_phase_concentration",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.004742,
+      "univariate_roc_auc": 0.5033,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_entropy",
+      "provenance_category": "SPECTRAL_DERIVED",
+      "pearson_correlation_with_target": -0.001159,
+      "univariate_roc_auc": 0.5008,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_peak_ratio",
+      "provenance_category": "SPECTRAL_DERIVED",
+      "pearson_correlation_with_target": 0.007033,
+      "univariate_roc_auc": 0.5027,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_p90_p10_spread",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.003037,
+      "univariate_roc_auc": 0.5013,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_p90_p10_ratio",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.003808,
+      "univariate_roc_auc": 0.5008,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_rms_to_p50",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": -0.001174,
+      "univariate_roc_auc": 0.5006,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_var_to_rms2",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.003048,
+      "univariate_roc_auc": 0.5008,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_envelope_skew_proxy",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": -0.001045,
+      "univariate_roc_auc": 0.5007,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_flatness_proxy",
+      "provenance_category": "SPECTRAL_DERIVED",
+      "pearson_correlation_with_target": -0.007033,
+      "univariate_roc_auc": 0.5027,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_entropy_peak_prod",
+      "provenance_category": "SPECTRAL_DERIVED",
+      "pearson_correlation_with_target": 0.007156,
+      "univariate_roc_auc": 0.5029,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_peak_to_background_ratio",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.007166,
+      "univariate_roc_auc": 0.5027,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_rms_magnitude_lag1",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.003344,
+      "univariate_roc_auc": 0.5024,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_rms_magnitude_lag2",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.00057,
+      "univariate_roc_auc": 0.5003,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_rms_magnitude_roll3",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.001778,
+      "univariate_roc_auc": 0.5013,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_rms_magnitude_roll5",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.001379,
+      "univariate_roc_auc": 0.5011,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_rms_magnitude_diff1",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.000821,
+      "univariate_roc_auc": 0.5004,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_entropy_lag1",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.003303,
+      "univariate_roc_auc": 0.5014,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_entropy_lag2",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.006132,
+      "univariate_roc_auc": 0.5035,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_entropy_roll3",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.000339,
+      "univariate_roc_auc": 0.5004,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_entropy_roll5",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.002113,
+      "univariate_roc_auc": 0.5009,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_entropy_diff1",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.00015,
+      "univariate_roc_auc": 0.5004,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_phase_concentration_lag1",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.006278,
+      "univariate_roc_auc": 0.5041,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_phase_concentration_lag2",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.001073,
+      "univariate_roc_auc": 0.5004,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_phase_concentration_roll3",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.005133,
+      "univariate_roc_auc": 0.5031,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_phase_concentration_roll5",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.003673,
+      "univariate_roc_auc": 0.5028,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_phase_concentration_diff1",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.008502,
+      "univariate_roc_auc": 0.5055,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "prev_signal_lag1",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": -0.000634,
+      "univariate_roc_auc": 0.5004,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "prev_signal_lag2",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.001701,
+      "univariate_roc_auc": 0.501,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "prev_signal_roll3",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 8.8e-05,
+      "univariate_roc_auc": 0.5005,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "prev_signal_roll5",
+      "provenance_category": "TEMPORAL_LAG_PAST",
+      "pearson_correlation_with_target": 0.000408,
+      "univariate_roc_auc": 0.5002,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_rms_magnitude_freq_dev",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.001071,
+      "univariate_roc_auc": 0.5001,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_spectral_entropy_freq_dev",
+      "provenance_category": "SPECTRAL_DERIVED",
+      "pearson_correlation_with_target": -0.001158,
+      "univariate_roc_auc": 0.5008,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature_name": "iq_phase_concentration_freq_dev",
+      "provenance_category": "IQ_STATISTICAL",
+      "pearson_correlation_with_target": 0.004794,
+      "univariate_roc_auc": 0.5033,
+      "contains_future_information": false,
+      "is_target_derived": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    }
+  ]
+}

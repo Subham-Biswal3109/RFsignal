@@ -1,0 +1,311 @@
+{
+  "audit_timestamp": "2026-08-31T19:57:14.829725+00:00",
+  "features": [
+    {
+      "feature": "frequency_mhz",
+      "category": "REAL_MEASURED",
+      "pearson_corr_target": -0.003472,
+      "single_feature_roc_auc": 0.5019,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "bandwidth_khz",
+      "category": "REAL_MEASURED",
+      "pearson_corr_target": -0.001213,
+      "single_feature_roc_auc": 0.5005,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_available",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": -0.00145,
+      "single_feature_roc_auc": 0.5007,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_rms_magnitude",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": 0.001102,
+      "single_feature_roc_auc": 0.5001,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_magnitude_variance",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": 0.00397,
+      "single_feature_roc_auc": 0.5016,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_peak_magnitude",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": -0.005132,
+      "single_feature_roc_auc": 0.5029,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_crest_factor",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": -0.005296,
+      "single_feature_roc_auc": 0.5029,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_p10",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": -0.002441,
+      "single_feature_roc_auc": 0.5006,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_p50",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": 0.001187,
+      "single_feature_roc_auc": 0.5001,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_p90",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": 0.00151,
+      "single_feature_roc_auc": 0.5011,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_phase_concentration",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": 0.004742,
+      "single_feature_roc_auc": 0.5033,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_entropy",
+      "category": "SPECTRAL_DERIVED",
+      "pearson_corr_target": -0.001159,
+      "single_feature_roc_auc": 0.5008,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_peak_ratio",
+      "category": "SPECTRAL_DERIVED",
+      "pearson_corr_target": 0.007033,
+      "single_feature_roc_auc": 0.5027,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_p90_p10_ratio",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": 0.003808,
+      "single_feature_roc_auc": 0.5008,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_rms_to_p50",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": -0.001174,
+      "single_feature_roc_auc": 0.5006,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_var_to_rms2",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": 0.003048,
+      "single_feature_roc_auc": 0.5008,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_flatness_proxy",
+      "category": "SPECTRAL_DERIVED",
+      "pearson_corr_target": -0.007033,
+      "single_feature_roc_auc": 0.5027,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_entropy_peak_prod",
+      "category": "SPECTRAL_DERIVED",
+      "pearson_corr_target": 0.007156,
+      "single_feature_roc_auc": 0.5029,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_rms_magnitude_lag1",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": 0.003344,
+      "single_feature_roc_auc": 0.5024,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_rms_magnitude_lag2",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": -0.00057,
+      "single_feature_roc_auc": 0.5003,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_rms_magnitude_roll_mean3",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": 0.001778,
+      "single_feature_roc_auc": 0.5013,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_rms_magnitude_diff1",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": 0.000821,
+      "single_feature_roc_auc": 0.5004,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_entropy_lag1",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": -0.003303,
+      "single_feature_roc_auc": 0.5014,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_entropy_lag2",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": 0.006132,
+      "single_feature_roc_auc": 0.5035,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_entropy_roll_mean3",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": -0.000339,
+      "single_feature_roc_auc": 0.5004,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_entropy_diff1",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": 0.00015,
+      "single_feature_roc_auc": 0.5004,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_phase_concentration_lag1",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": -0.006278,
+      "single_feature_roc_auc": 0.5041,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_phase_concentration_lag2",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": -0.001073,
+      "single_feature_roc_auc": 0.5004,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_phase_concentration_roll_mean3",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": -0.005133,
+      "single_feature_roc_auc": 0.5031,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "prev_signal_dbm_lag1",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": -0.000634,
+      "single_feature_roc_auc": 0.5004,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "prev_signal_dbm_lag2",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": 0.001701,
+      "single_feature_roc_auc": 0.501,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "prev_signal_roll_mean3",
+      "category": "TEMPORAL_LAG",
+      "pearson_corr_target": 8.8e-05,
+      "single_feature_roc_auc": 0.5005,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_rms_magnitude_freq_dev",
+      "category": "IQ_STATISTICAL",
+      "pearson_corr_target": 0.001071,
+      "single_feature_roc_auc": 0.5001,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    },
+    {
+      "feature": "iq_spectral_entropy_freq_dev",
+      "category": "SPECTRAL_DERIVED",
+      "pearson_corr_target": -0.001158,
+      "single_feature_roc_auc": 0.5008,
+      "is_circular_leakage": false,
+      "future_leakage": false,
+      "status": "APPROVED_FOR_EXPERIMENT"
+    }
+  ]
+}

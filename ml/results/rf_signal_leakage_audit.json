@@ -1,0 +1,114 @@
+{
+  "target_generation": {
+    "signal_strength_defines_target": true,
+    "exact_match": true,
+    "signal_strength_auc": 1.0,
+    "ml_feature_excluded": true
+  },
+  "feature_tests": [
+    {
+      "feature": "iq_available",
+      "pearson": 0.0011536635366477645,
+      "spearman": 0.0011536635366478521,
+      "single_feature_auc": 0.50054416489641,
+      "non_null": 164160,
+      "mutual_information_sample_20k": 0.0
+    },
+    {
+      "feature": "iq_rms_magnitude",
+      "pearson": -9.527885444809747e-05,
+      "spearman": -0.0004996827190646201,
+      "single_feature_auc": 0.4997114866320882,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.0013543047563107091
+    },
+    {
+      "feature": "iq_magnitude_variance",
+      "pearson": 0.001918888841230112,
+      "spearman": 0.0014723889356101072,
+      "single_feature_auc": 0.5008501472524087,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.0
+    },
+    {
+      "feature": "iq_peak_magnitude",
+      "pearson": -0.0038844883703225944,
+      "spearman": -0.003898525929538592,
+      "single_feature_auc": 0.4977490179209556,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.00032629223348767944
+    },
+    {
+      "feature": "iq_crest_factor",
+      "pearson": -0.0032226839193430605,
+      "spearman": -0.0032456799359463443,
+      "single_feature_auc": 0.498125966710963,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.001161105029959586
+    },
+    {
+      "feature": "iq_p10",
+      "pearson": -0.00034173322562654733,
+      "spearman": 0.00037272474165460167,
+      "single_feature_auc": 0.5002152087042756,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.0017002048960521599
+    },
+    {
+      "feature": "iq_p50",
+      "pearson": -7.061380660825383e-05,
+      "spearman": -0.00039377686561825137,
+      "single_feature_auc": 0.49977263594402876,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.00583203461631987
+    },
+    {
+      "feature": "iq_p90",
+      "pearson": 0.00016014073254467235,
+      "spearman": 0.0005433006282704648,
+      "single_feature_auc": 0.5003136980489227,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.0
+    },
+    {
+      "feature": "iq_phase_concentration",
+      "pearson": 0.0009245834298024443,
+      "spearman": 0.0011052510012099447,
+      "single_feature_auc": 0.5006381643322465,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.0036342212259441453
+    },
+    {
+      "feature": "iq_spectral_entropy",
+      "pearson": 0.0002080637200368459,
+      "spearman": 0.00011755194361285432,
+      "single_feature_auc": 0.5000678736843648,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.0
+    },
+    {
+      "feature": "iq_spectral_peak_ratio",
+      "pearson": 0.005581245317211594,
+      "spearman": 0.004325372033116266,
+      "single_feature_auc": 0.5024974400857447,
+      "non_null": 109324,
+      "mutual_information_sample_20k": 0.006169491630462209
+    },
+    {
+      "feature": "frequency_mhz",
+      "pearson": -0.0005510965282503848,
+      "spearman": -0.0005111925087977758,
+      "single_feature_auc": 0.4997089726064595,
+      "non_null": 164160,
+      "mutual_information_sample_20k": 0.0
+    },
+    {
+      "feature": "bandwidth_khz",
+      "pearson": 0.0007528702954251832,
+      "spearman": 0.000915596304466775,
+      "single_feature_auc": 0.5005212589228188,
+      "non_null": 164160,
+      "mutual_information_sample_20k": 0.0008201057129648692
+    }
+  ]
+}
