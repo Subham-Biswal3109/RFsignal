@@ -31,6 +31,10 @@ import type {
 } from "@/types/wire-watcher";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
+import { SpectrumChart } from "./SpectrumChart";
+import { ChannelStrip } from "./ChannelStrip";
+import { DecisionSummary } from "./DecisionSummary";
+import { ScoreBarChart } from "./ScoreBarChart";
 import { ChannelAllocationHeatmap } from "./ChannelAllocationHeatmap";
 import { CalculationTraceModal } from "./CalculationTraceModal";
 
@@ -49,6 +53,7 @@ export function ChannelAllocationView() {
   const [sortAsc, setSortAsc] = useState<boolean>(false);
 
   const [selectedCandidate, setSelectedCandidate] = useState<ChannelCandidate | null>(null);
+  const [scoreChartMode, setScoreChartMode] = useState<"eligible" | "top">("eligible");
   const [traceCandidate, setTraceCandidate] = useState<ChannelCandidate | null>(null);
 
   const fetchAllocation = async () => {
@@ -221,7 +226,81 @@ export function ChannelAllocationView() {
         </div>
       </Panel>
 
-      {/* Visual Channel Allocation Heatmap */}
+      {/* Frequency Availability Summary */}
+      {data && (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono text-xs">
+          <div className="p-3 rounded-lg border border-slate-700 bg-slate-900/60 flex flex-col">
+            <span className="text-slate-400 text-[10px] uppercase">Total Candidates</span>
+            <span className="text-xl font-bold text-slate-100 mt-1">{data.total_candidates}</span>
+            <span className="text-[10px] text-slate-500">{startFreqMhz.toFixed(1)} - {endFreqMhz.toFixed(1)} MHz</span>
+          </div>
+          <div className="p-3 rounded-lg border border-purple-800/60 bg-purple-950/30 flex flex-col">
+            <span className="text-purple-300 text-[10px] uppercase flex items-center gap-1">
+              <Sparkles className="size-3 text-purple-400" /> Recommended
+            </span>
+            <span className="text-xl font-bold text-purple-300 mt-1">
+              {data.recommended_count ?? data.candidates.filter(c => c.recommendation_status === "RECOMMENDED").length}
+            </span>
+            <span className="text-[10px] text-purple-400/70">Score &ge; 50 + Clean Safety</span>
+          </div>
+          <div className="p-3 rounded-lg border border-emerald-800/60 bg-emerald-950/30 flex flex-col">
+            <span className="text-emerald-300 text-[10px] uppercase flex items-center gap-1">
+              <CheckCircle2 className="size-3 text-emerald-400" /> Free (Available)
+            </span>
+            <span className="text-xl font-bold text-emerald-300 mt-1">
+              {data.free_count ?? data.candidates.filter(c => c.recommendation_status === "FREE").length}
+            </span>
+            <span className="text-[10px] text-emerald-400/70">Unoccupied RF Bands</span>
+          </div>
+          <div className="p-3 rounded-lg border border-rose-800/60 bg-rose-950/30 flex flex-col">
+            <span className="text-rose-300 text-[10px] uppercase flex items-center gap-1">
+              <XCircle className="size-3 text-rose-400" /> Busy (Occupied)
+            </span>
+            <span className="text-xl font-bold text-rose-300 mt-1">
+              {data.busy_count ?? data.candidates.filter(c => c.recommendation_status === "BUSY").length}
+            </span>
+            <span className="text-[10px] text-rose-400/70">Active Transmissions</span>
+          </div>
+          <div className="p-3 rounded-lg border border-amber-800/60 bg-amber-950/30 flex flex-col">
+            <span className="text-amber-300 text-[10px] uppercase flex items-center gap-1">
+              <AlertTriangle className="size-3 text-amber-400" /> Uncertain / OOD
+            </span>
+            <span className="text-xl font-bold text-amber-300 mt-1">
+              {data.uncertain_count ?? data.candidates.filter(c => c.recommendation_status === "UNCERTAIN").length}
+            </span>
+            <span className="text-[10px] text-amber-400/70">Unresolved Safety Checks</span>
+          </div>
+        </div>
+      )}
+
+      {/* Visual Spectrum Chart and Channel Strip */}
+      {data && (
+        <Panel
+          title="Frequency Spectrum Analysis Chart"
+          subtitle="Observed RF signal power vs. noise floor reference with channel candidate allocations."
+        >
+          <div className="space-y-4">
+            <SpectrumChart
+              candidates={data.candidates}
+              noiseFloorDbm={noiseFloorDbm}
+              selectedCandidate={selectedCandidate ?? undefined}
+              onSelect={setSelectedCandidate}
+            />
+            <div>
+              <div className="text-[11px] font-mono text-slate-400 mb-1">
+                Channel Allocation Status Strip (Click a channel segment to inspect):
+              </div>
+              <ChannelStrip
+                candidates={data.candidates}
+                selectedId={selectedCandidate?.candidate_id}
+                onSelect={setSelectedCandidate}
+              />
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {/* Channel Allocation Heatmap Grid */}
       {data && (
         <ChannelAllocationHeatmap
           candidates={data.candidates}
@@ -239,64 +318,144 @@ export function ChannelAllocationView() {
         </div>
       )}
 
-      {/* Recommended Candidate Callout Card */}
+      {/* Recommended Candidate Callout Card & Decision Summary */}
       {data && (
-        <div
-          className={cn(
-            "rounded-xl border-2 p-6 shadow-sm font-mono text-xs transition-colors",
-            data.has_suitable_candidate && data.recommended_candidate
-              ? "border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200"
-              : "border-amber-500 bg-amber-50/70 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200"
-          )}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900 text-white">
-                  RECOMMENDATION RESULT
-                </span>
-                <span className="text-xs text-slate-500">
-                  {data.total_candidates} Candidate Channels Analyzed
-                </span>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div
+            className={cn(
+              "lg:col-span-2 rounded-xl border-2 p-6 shadow-sm font-mono text-xs transition-colors",
+              data.has_suitable_candidate && data.recommended_candidate
+                ? "border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200"
+                : "border-amber-500 bg-amber-50/70 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200"
+            )}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900 text-white">
+                    RECOMMENDATION RESULT
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {data.total_candidates} Candidate Channels Analyzed
+                  </span>
+                </div>
+
+                {data.has_suitable_candidate && data.recommended_candidate ? (
+                  <>
+                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight mt-2 text-emerald-600 dark:text-emerald-400">
+                      RECOMMENDED CANDIDATE: {data.recommended_candidate.center_freq_mhz.toFixed(3)} MHz
+                    </h3>
+                    <p className="text-xs mt-1 text-slate-700 dark:text-slate-300 max-w-2xl font-sans">
+                      Optimal candidate channel identified. Inactive RF status, safe guard-band margin, low interference risk, and score above safety threshold (50.0).
+                    </p>
+                    {data.recommended_candidates && data.recommended_candidates.length > 1 && (
+                      <div className="mt-3 pt-3 border-t border-emerald-500/30">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                          Other Eligible Recommended Channels ({data.recommended_candidates.length - 1}):
+                        </span>
+                        <div className="flex flex-wrap gap-2 mt-1.5">
+                          {data.recommended_candidates
+                            .filter(c => c.candidate_id !== data.recommended_candidate?.candidate_id)
+                            .map(c => (
+                              <button
+                                key={c.candidate_id}
+                                onClick={() => setSelectedCandidate(c)}
+                                className={cn(
+                                  "px-2 py-1 rounded border text-[11px] font-mono transition",
+                                  selectedCandidate?.candidate_id === c.candidate_id
+                                    ? "bg-purple-600 text-white border-purple-400"
+                                    : "bg-emerald-900/40 text-emerald-200 border-emerald-700/60 hover:bg-emerald-800/60"
+                                )}
+                              >
+                                {c.candidate_id}: {c.center_freq_mhz.toFixed(3)} MHz ({c.score.toFixed(0)} pts)
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight mt-2 text-amber-600 dark:text-amber-400">
+                      NO SUITABLE CANDIDATE
+                    </h3>
+                    <p className="text-xs mt-1 text-slate-700 dark:text-slate-300 max-w-2xl font-sans">
+                      All analyzed channels are occupied, out-of-distribution, or fall below the minimum recommendation safety score threshold (50.0).
+                    </p>
+                  </>
+                )}
               </div>
 
-              {data.has_suitable_candidate && data.recommended_candidate ? (
-                <>
-                  <h3 className="text-3xl sm:text-4xl font-black tracking-tight mt-2 text-emerald-600 dark:text-emerald-400">
-                    RECOMMENDED CANDIDATE: {data.recommended_candidate.center_freq_mhz} MHz
-                  </h3>
-                  <p className="text-xs mt-1 text-slate-700 dark:text-slate-300 max-w-2xl font-sans">
-                    Optimal candidate channel identified. Lowest observed RF activity, safe guard-band margin, low interference risk, and clean safety status.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-3xl sm:text-4xl font-black tracking-tight mt-2 text-amber-600 dark:text-amber-400">
-                    NO SUITABLE CANDIDATE
-                  </h3>
-                  <p className="text-xs mt-1 text-slate-700 dark:text-slate-300 max-w-2xl font-sans">
-                    All analyzed channels are occupied, out-of-distribution, or fall below the minimum recommendation safety score threshold (50.0).
-                  </p>
-                </>
+              {data.recommended_candidate && (
+                <div className="text-right flex flex-col sm:items-end gap-1 shrink-0">
+                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                    Score: {data.recommended_candidate.score} / 100
+                  </div>
+                  <button
+                    onClick={() => setTraceCandidate(data.recommended_candidate)}
+                    className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded shadow transition"
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span>View Calculation Trace</span>
+                  </button>
+                </div>
               )}
             </div>
+          </div>
 
-            {data.recommended_candidate && (
-              <div className="text-right flex flex-col sm:items-end gap-1 shrink-0">
-                <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                  Score: {data.recommended_candidate.score} / 100
-                </div>
-                <button
-                  onClick={() => setTraceCandidate(data.recommended_candidate)}
-                  className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded shadow transition"
-                >
-                  <Calculator className="w-3.5 h-3.5" />
-                  <span>View Calculation Trace</span>
-                </button>
-              </div>
-            )}
+          {/* Selected Channel Decision Summary */}
+          <div className="lg:col-span-1">
+            <DecisionSummary
+              candidate={selectedCandidate ?? data.recommended_candidate ?? undefined}
+              threshold={50}
+            />
           </div>
         </div>
+      )}
+
+      {/* Ranked Allocation-Score Chart */}
+      {data && (
+        <Panel
+          title="Ranked Channel Allocation Scores"
+          subtitle="Top candidates evaluated across the VHF band against the 50-point recommendation threshold."
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span className="text-xs text-slate-400 font-mono">
+                Showing top 10 {scoreChartMode === "eligible" ? "eligible (recommended/free)" : "highest scoring"} candidates
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setScoreChartMode("eligible")}
+                  className={cn(
+                    "px-2.5 py-1 text-[11px] font-mono rounded border transition",
+                    scoreChartMode === "eligible"
+                      ? "bg-indigo-600 text-white border-indigo-500 font-semibold"
+                      : "bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200"
+                  )}
+                >
+                  Top Eligible
+                </button>
+                <button
+                  onClick={() => setScoreChartMode("top")}
+                  className={cn(
+                    "px-2.5 py-1 text-[11px] font-mono rounded border transition",
+                    scoreChartMode === "top"
+                      ? "bg-indigo-600 text-white border-indigo-500 font-semibold"
+                      : "bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200"
+                  )}
+                >
+                  All Highest Scoring
+                </button>
+              </div>
+            </div>
+            <ScoreBarChart
+              candidates={data.candidates}
+              threshold={50}
+              mode={scoreChartMode}
+            />
+          </div>
+        </Panel>
       )}
 
       {/* Candidate Channels Table */}

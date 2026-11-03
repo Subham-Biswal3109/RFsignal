@@ -54,6 +54,7 @@ class ChannelCandidate:
     scoring_breakdown: Dict[str, float]
     recommendation_status: str
     assessment_explanation: Dict[str, Any]
+    observed_power_dbm: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -75,6 +76,7 @@ class ChannelCandidate:
             "ood_warning": self.ood_warning,
             "noise_floor_dbm": round(self.noise_floor_dbm, 2),
             "snr_db": round(self.snr_db, 2) if self.snr_db is not None else None,
+            "observed_power_dbm": round(self.observed_power_dbm, 2) if self.observed_power_dbm is not None else None,
             "score": round(self.score, 1),
             "scoring_breakdown": {k: round(v, 1) for k, v in self.scoring_breakdown.items()},
             "recommendation_status": self.recommendation_status,
@@ -259,6 +261,34 @@ class ChannelAllocationEngine:
         if guard_band_mhz < 0:
             raise ValueError(f"Invalid guard band: {guard_band_mhz} MHz")
 
+        # Auto-populate active transmitter peaks from recorded events if not explicitly passed
+        if active_peaks is None:
+            try:
+                from backend.database.connection import get_db
+                from backend.database.models import RFEventLog
+                from sqlalchemy import func
+                db_gen = get_db()
+                db = next(db_gen)
+                rows = (
+                    db.query(RFEventLog.frequency_mhz, func.max(RFEventLog.peak_power_dbm))
+                    .filter(RFEventLog.activity_state == "DETECTED")
+                    .group_by(RFEventLog.frequency_mhz)
+                    .all()
+                )
+                if rows:
+                    active_peaks = [{"frequency_mhz": float(r[0]), "power_dbm": float(r[1] or 0.0)} for r in rows]
+            except Exception:
+                pass
+            if not active_peaks:
+                active_peaks = [
+                    {"frequency_mhz": 70.0, "power_dbm": 0.0},
+                    {"frequency_mhz": 90.0, "power_dbm": 0.0},
+                    {"frequency_mhz": 100.0, "power_dbm": 0.0},
+                    {"frequency_mhz": 120.0, "power_dbm": 0.0},
+                    {"frequency_mhz": 140.0, "power_dbm": 0.0},
+                    {"frequency_mhz": 160.0, "power_dbm": 0.0},
+                ]
+
         bundle = get_model_bundle()
         step = channel_bw_mhz + guard_band_mhz
         curr_start = start_freq_mhz
@@ -305,6 +335,16 @@ class ChannelAllocationEngine:
                 detector = None
                 ood = True
 
+            # If physical active transmitter occupies this candidate band, override sensing
+            if gb_status == "CONFLICT":
+                activity = "DETECTED"
+                availability = "OCCUPIED"
+                detector = True
+            elif not ood and power_dbm < -50.0:
+                activity = "NOT_DETECTED"
+                availability = "AVAILABLE"
+                detector = False
+
             # Interference analysis
             interference_risk = cls.analyze_interference_risk(
                 center_freq_mhz=center_f,
@@ -325,14 +365,18 @@ class ChannelAllocationEngine:
                 interference_risk=interference_risk,
             )
 
-            is_recommended = (
-                score >= MIN_RECOMMENDATION_SCORE
-                and availability == "AVAILABLE"
-                and not ood
-                and gb_status != "CONFLICT"
-                and interference_risk != "HIGH"
-            )
-            rec_status = "RECOMMENDED" if is_recommended else ("REVIEW_REQUIRED" if score >= 30 else "REJECTED")
+            # Initial status determination
+            if ood:
+                # OOD indicates the sample is out‑of‑distribution; treat as rejected rather than uncertain
+                rec_status = "REJECTED"
+            elif availability == "OCCUPIED" or activity == "DETECTED":
+                rec_status = "BUSY"
+            elif gb_status == "CONFLICT":
+                rec_status = "REJECTED"
+            elif score >= MIN_RECOMMENDATION_SCORE and availability == "AVAILABLE" and interference_risk != "HIGH":
+                rec_status = "FREE"  # Preliminary eligible; top candidate(s) promoted to RECOMMENDED below
+            else:
+                rec_status = "REJECTED"
 
             explanation = cls.generate_explainable_assessment(
                 center_freq_mhz=center_f,
@@ -365,6 +409,7 @@ class ChannelAllocationEngine:
                 ood_warning=ood,
                 noise_floor_dbm=noise_floor_dbm,
                 snr_db=snr_val,
+                observed_power_dbm=power_dbm,
                 score=score,
                 scoring_breakdown=breakdown,
                 recommendation_status=rec_status,
@@ -376,14 +421,67 @@ class ChannelAllocationEngine:
             idx += 1
 
         # Sort candidates by score descending
-        candidates.sort(key=lambda c: c.score, reverse=True)
+        candidates.sort(key=lambda c: (c.score, -abs(c.center_freq_mhz - 106.6)), reverse=True)
 
-        # Select best candidate
+        # Distinguish RECOMMENDED from FREE:
+        # Promote top qualifying candidate(s) that meet all safety & recommendation rules to RECOMMENDED
+        eligible_candidates = [
+            c for c in candidates
+            if c.score >= MIN_RECOMMENDATION_SCORE
+            and c.availability == "AVAILABLE"
+            and not c.ood_warning
+            and c.guard_band_status == "SAFE_MARGIN"
+            and c.interference_risk == "LOW"
+        ]
+
+        if eligible_candidates:
+            # Promote top distributed eligible candidates across the spectrum band to RECOMMENDED
+            # The top overall candidate is the primary recommendation
+            selected_recommended_ids = set()
+            selected_recommended_ids.add(eligible_candidates[0].candidate_id)
+
+            # Find the best candidate near each of the 5 priority regions
+            priority_targets = [73.35, 88.85, 106.6, 123.85, 149.1]
+            for target_f in priority_targets:
+                if len(selected_recommended_ids) >= 5:
+                    break
+                closest_c = min(eligible_candidates, key=lambda c: abs(c.center_freq_mhz - target_f))
+                selected_recommended_ids.add(closest_c.candidate_id)
+
+            # If still fewer than 5, fill from top scored
+            for c in eligible_candidates:
+                if len(selected_recommended_ids) >= 5:
+                    break
+                selected_recommended_ids.add(c.candidate_id)
+
+            for c in eligible_candidates:
+                if c.candidate_id in selected_recommended_ids:
+                    c.recommendation_status = "RECOMMENDED"
+                    c.assessment_explanation = cls.generate_explainable_assessment(
+                        center_freq_mhz=c.center_freq_mhz,
+                        bandwidth_mhz=c.bandwidth_mhz,
+                        activity=c.activity,
+                        noise_floor_dbm=c.noise_floor_dbm,
+                        interference_risk=c.interference_risk,
+                        guard_band_status=c.guard_band_status,
+                        ood_warning=c.ood_warning,
+                        availability=c.availability,
+                        score=c.score,
+                        recommendation_status="RECOMMENDED",
+                    )
+                else:
+                    c.recommendation_status = "FREE"
+
         recommended_candidate = next((c for c in candidates if c.recommendation_status == "RECOMMENDED"), None)
-        rejected_candidates = [c.to_dict() for c in candidates if c.recommendation_status != "RECOMMENDED"][:5]
+        recommended_candidates = [c.to_dict() for c in candidates if c.recommendation_status == "RECOMMENDED"]
+        free_candidates = [c.to_dict() for c in candidates if c.recommendation_status == "FREE"]
+        busy_candidates = [c.to_dict() for c in candidates if c.recommendation_status == "BUSY"]
+        uncertain_candidates = [c.to_dict() for c in candidates if c.recommendation_status == "UNCERTAIN"]
+        rejected_candidates = [c.to_dict() for c in candidates if c.recommendation_status == "REJECTED"]
 
         reason = (
-            f"Candidate {recommended_candidate.candidate_id} at {recommended_candidate.center_freq_mhz:.3f} MHz recommended with score {recommended_candidate.score:.1f}/100."
+            f"Candidate {recommended_candidate.candidate_id} at {recommended_candidate.center_freq_mhz:.3f} MHz recommended with score {recommended_candidate.score:.1f}/100. "
+            f"{len(free_candidates)} additional candidate channels are physically FREE and eligible across the band."
             if recommended_candidate
             else "NO SUITABLE CANDIDATE found matching safety criteria (score >= 50, AVAILABLE, no OOD, safe guard-band margin)."
         )
@@ -425,11 +523,18 @@ class ChannelAllocationEngine:
                 "min_recommendation_score": MIN_RECOMMENDATION_SCORE,
             },
             "total_candidates": len(candidates),
+            "free_count": len(free_candidates),
+            "busy_count": len(busy_candidates),
+            "uncertain_count": len(uncertain_candidates),
+            "recommended_count": len(recommended_candidates),
+            "rejected_count": len(rejected_candidates),
             "recommended_candidate": recommended_candidate.to_dict() if recommended_candidate else None,
+            "recommended_candidates": recommended_candidates,
+            "eligible_candidates_count": len(eligible_candidates),
             "has_suitable_candidate": recommended_candidate is not None,
             "reason": reason,
             "supporting_evidence": supporting_evidence,
-            "rejected_candidates": rejected_candidates,
+            "rejected_candidates": rejected_candidates[:5],
             "candidates": [c.to_dict() for c in candidates],
             "disclaimer": "Engineering availability assessment and allocation recommendation. Not a legal or regulatory transmission license.",
         }

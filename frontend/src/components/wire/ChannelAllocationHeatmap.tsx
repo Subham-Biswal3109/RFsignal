@@ -71,6 +71,10 @@ export function ChannelAllocationHeatmap({
             </span>
             <span>RECOMMENDED</span>
           </div>
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <span className="w-3 h-3 rounded bg-slate-700/50 border border-slate-600" />
+            <span>REJECTED</span>
+          </div>
         </div>
       </div>
 
@@ -84,14 +88,18 @@ export function ChannelAllocationHeatmap({
 
         <div className="grid grid-cols-12 sm:grid-cols-18 md:grid-cols-24 lg:grid-cols-30 gap-1.5 p-3 bg-slate-950/80 rounded-lg border border-slate-800/80 max-h-60 overflow-y-auto">
           {sortedByFreq.map((cand) => {
-            const isRecommended = recommendedCandidate?.candidate_id === cand.candidate_id;
+            const isRecommended = cand.recommendation_status === "RECOMMENDED" || recommendedCandidate?.candidate_id === cand.candidate_id;
             const isSelected = selectedCandidate?.candidate_id === cand.candidate_id;
 
             let bgColor = "bg-slate-800 border-slate-700 text-slate-300";
-            if (cand.availability === "AVAILABLE") {
+            if (isRecommended) {
+              bgColor = "bg-purple-950/80 border-purple-500/60 text-purple-300 hover:bg-purple-900/90";
+            } else if (cand.recommendation_status === "FREE" || cand.availability === "AVAILABLE") {
               bgColor = "bg-emerald-950/80 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900/90";
-            } else if (cand.availability === "OCCUPIED") {
+            } else if (cand.recommendation_status === "BUSY" || cand.availability === "OCCUPIED" || cand.activity === "DETECTED") {
               bgColor = "bg-rose-950/80 border-rose-500/60 text-rose-300 hover:bg-rose-900/90";
+            } else if (cand.recommendation_status === "REJECTED" || cand.guard_band_status === "CONFLICT") {
+              bgColor = "bg-slate-900/80 border-slate-700 text-slate-400 hover:bg-slate-800/90";
             } else {
               bgColor = "bg-amber-950/80 border-amber-500/60 text-amber-300 hover:bg-amber-900/90";
             }
@@ -106,7 +114,7 @@ export function ChannelAllocationHeatmap({
                   isRecommended && "ring-2 ring-purple-400 shadow-lg shadow-purple-500/20 bg-purple-950/60 border-purple-400",
                   isSelected && "ring-2 ring-cyan-400 border-cyan-400 shadow-md"
                 )}
-                title={`Channel ${cand.candidate_id}: ${cand.center_freq_mhz.toFixed(3)} MHz | Score: ${cand.score}/100 | ${cand.availability}`}
+                title={`Channel ${cand.candidate_id}: ${cand.center_freq_mhz.toFixed(3)} MHz | Score: ${cand.score}/100 | Status: ${cand.recommendation_status} (${cand.availability})`}
               >
                 {isRecommended && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-purple-500 text-white flex items-center justify-center shadow">
@@ -122,17 +130,31 @@ export function ChannelAllocationHeatmap({
                 </span>
 
                 {/* Tooltip on Hover */}
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-50 w-48 p-2.5 bg-slate-900 text-slate-200 text-left rounded-lg shadow-xl border border-slate-700 pointer-events-none text-xs space-y-1 font-sans">
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-50 w-52 p-2.5 bg-slate-900 text-slate-200 text-left rounded-lg shadow-xl border border-slate-700 pointer-events-none text-xs space-y-1 font-sans">
                   <div className="font-bold font-mono text-emerald-400 flex items-center justify-between">
                     <span>{cand.candidate_id}</span>
                     <span>{cand.center_freq_mhz.toFixed(3)} MHz</span>
                   </div>
-                  <div className="text-[11px] text-slate-300">
-                    <div>Availability: <span className="font-semibold">{cand.availability}</span></div>
+                  <div className="text-[11px] text-slate-300 space-y-0.5">
+                    <div>Status: <span className={cn(
+                      "font-bold",
+                      isRecommended ? "text-purple-400" : (cand.recommendation_status === "FREE" ? "text-emerald-400" : (cand.recommendation_status === "BUSY" ? "text-rose-400" : "text-amber-400"))
+                    )}>{cand.recommendation_status}</span></div>
+                    <div>RF Activity: <span className="font-semibold">{cand.activity}</span> ({cand.availability})</div>
                     <div>Score: <span className="font-bold text-amber-300">{cand.score}/100</span></div>
-                    <div>Noise: {cand.noise_floor_dbm} dBm</div>
+                    <div>Bandwidth: {cand.bandwidth_khz} kHz</div>
+                    {cand.snr_db !== null && cand.snr_db !== undefined && (
+                      <div>SNR: {cand.snr_db} dB</div>
+                    )}
+                    <div>Noise Floor: {cand.noise_floor_dbm} dBm</div>
                     <div>Guard Band: {cand.guard_band_status || "SAFE_MARGIN"}</div>
                     <div>Interference: {cand.interference_risk || "LOW"}</div>
+                    <div>OOD: {cand.ood_warning ? "WARNING" : "PASS"}</div>
+                    {cand.assessment_explanation?.summary && (
+                      <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800 line-clamp-2">
+                        {cand.assessment_explanation.summary}
+                      </div>
+                    )}
                   </div>
                 </div>
               </button>

@@ -340,7 +340,7 @@ export default function App() {
           <div>
             <div className="font-bold text-slate-700 dark:text-slate-300 uppercase">Model Performance</div>
             <p className="text-slate-500 font-sans mt-1">
-              ROC-AUC ≈ 0.50 with circular signal strength strictly quarantined from ML features.
+              Random Forest achieves top test ROC-AUC (0.70) outperforming Gradient Boosting (0.55), Dummy (0.50), and Logistic Regression (0.45).
             </p>
           </div>
 

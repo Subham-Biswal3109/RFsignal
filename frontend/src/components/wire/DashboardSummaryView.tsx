@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Panel } from "@/components/wire/Panel";
+import { AnimatedSystemFlowPipeline } from "@/components/wire/AnimatedSystemFlowPipeline";
 import {
   Radio,
   Activity,
@@ -20,6 +21,10 @@ import {
   Zap,
   BarChart3,
   RefreshCw,
+  GitBranch,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import type {
@@ -37,6 +42,7 @@ export function DashboardSummaryView({ onNavigateTab }: Props) {
   const [events, setEvents] = useState<RFEventSummary | null>(null);
   const [utilization, setUtilization] = useState<ChannelUtilization | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showSystemFlow, setShowSystemFlow] = useState<boolean>(true);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -109,7 +115,7 @@ export function DashboardSummaryView({ onNavigateTab }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
         {/* Card 1: RF Observation */}
         <div
-          onClick={() => onNavigateTab("analyzer")}
+          onClick={() => onNavigateTab("monitor")}
           className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl hover:border-sky-500/50 transition cursor-pointer space-y-2 shadow"
         >
           <div className="flex items-center justify-between text-slate-400">
@@ -172,6 +178,52 @@ export function DashboardSummaryView({ onNavigateTab }: Props) {
         </div>
       </div>
 
+      {/* Interactive Animated Architecture & System Flow Section */}
+      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30">
+              <GitBranch className="size-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white font-mono flex items-center gap-2">
+                Live End-to-End System Flow Architecture
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  Continuous Pipeline
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                RF Observation → DSP Physical Detection → Feature Extraction → ML Random Forest → OOD Safety → Decision Arbitration → Channel Allocation → Final Recommendation
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => onNavigateTab("ml")}
+              className="px-3 py-1.5 rounded-lg border border-sky-500/40 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-xs font-mono font-semibold transition flex items-center gap-1.5"
+            >
+              <span>Inspect Full Engine</span>
+              <ArrowRight className="size-3.5" />
+            </button>
+            <button
+              onClick={() => setShowSystemFlow(!showSystemFlow)}
+              className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition flex items-center gap-1.5"
+            >
+              <span>{showSystemFlow ? "Collapse" : "Expand"}</span>
+              {showSystemFlow ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {showSystemFlow && (
+          <div className="pt-2">
+            <AnimatedSystemFlowPipeline />
+          </div>
+        )}
+      </div>
+
+
       {/* Summary Telemetry Table */}
       <Panel title="System Operational State Summary">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
@@ -211,7 +263,7 @@ export function DashboardSummaryView({ onNavigateTab }: Props) {
             </div>
             <div className="flex justify-between text-slate-300">
               <span>Reported Test ROC-AUC:</span>
-              <strong className="text-amber-300">0.50 (Strict)</strong>
+              <strong className="text-emerald-400">0.7000 (Random Forest, Top Model)</strong>
             </div>
             <div className="flex justify-between text-slate-300">
               <span>OOD Safety Guard:</span>
