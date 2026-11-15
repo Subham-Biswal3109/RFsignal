@@ -352,6 +352,7 @@ export interface ChannelCandidate {
   ood_warning: boolean;
   noise_floor_dbm: number;
   snr_db: number | null;
+  observed_power_dbm?: number | null;
   score: number;
   scoring_breakdown: {
     base_score: number;
@@ -362,7 +363,7 @@ export interface ChannelCandidate {
     guard_band_penalty?: number;
     interference_penalty?: number;
   };
-  recommendation_status: "RECOMMENDED" | "REVIEW_REQUIRED" | "REJECTED";
+  recommendation_status: "RECOMMENDED" | "FREE" | "BUSY" | "UNCERTAIN" | "REVIEW_REQUIRED" | "REJECTED";
   assessment_explanation?: {
     headline: string;
     summary: string;
@@ -388,8 +389,19 @@ export interface AllocationRecommendationResponse {
     location?: string;
   };
   scoring_weights: Record<string, number>;
+  data_label?: string;
+  is_demonstration_scenario?: boolean;
   total_candidates: number;
+  free_count?: number;
+  available_count?: number;
+  busy_count?: number;
+  occupied_count?: number;
+  uncertain_count?: number;
+  recommended_count?: number;
+  rejected_count?: number;
+  eligible_candidates_count?: number;
   recommended_candidate: ChannelCandidate | null;
+  recommended_candidates?: ChannelCandidate[];
   has_suitable_candidate: boolean;
   reason?: string;
   supporting_evidence?: Record<string, any>;

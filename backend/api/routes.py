@@ -481,11 +481,14 @@ def list_rf_sources():
 # Channel Allocation & Recommendation Endpoints (Full Integration Phase)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@api_bp.route("/api/allocation/recommend", methods=["POST"])
+@api_bp.route("/api/allocation/recommend", methods=["GET", "POST"])
 def recommend_channel_allocation():
     """Generate candidate channels across a frequency band, score them, and return allocation recommendations."""
     try:
-        req_data = AllocationRequest(**(request.json or {}))
+        data = request.get_json(silent=True) or {}
+        if not data and request.args:
+            data = request.args.to_dict()
+        req_data = AllocationRequest(**data)
     except ValidationError as exc:
         return jsonify({"error": "Invalid allocation request parameters", "details": str(exc)}), 400
     except Exception as exc:

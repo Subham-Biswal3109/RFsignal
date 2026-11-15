@@ -48,11 +48,19 @@ _dsp_detector = DSPActivityDetector()
 def detector_activity(signal_strength_dbm: float, frequency_mhz: float, bundle: dict):
     thresholds = bundle.get("signal_strength_activity_thresholds_dbm", {})
     key = str(float(frequency_mhz))
-    if key not in thresholds:
-        # Never invent a threshold for an unseen frequency.
-        return None, f"No trained activity threshold for frequency {frequency_mhz} MHz"
-    threshold = float(thresholds[key])
-    return bool(float(signal_strength_dbm) >= threshold), None
+    if key in thresholds:
+        threshold = float(thresholds[key])
+        return bool(float(signal_strength_dbm) >= threshold), None
+
+    # For frequencies within the trained band range (70.0 - 160.0 MHz), reference the nearest trained threshold
+    freq_keys = [float(k) for k in thresholds.keys()]
+    if freq_keys and min(freq_keys) <= float(frequency_mhz) <= max(freq_keys):
+        nearest_key = str(min(freq_keys, key=lambda f: abs(f - float(frequency_mhz))))
+        threshold = float(thresholds[nearest_key])
+        return bool(float(signal_strength_dbm) >= threshold), None
+
+    # Never invent a threshold for an unseen frequency outside the band.
+    return None, f"No trained activity threshold for frequency {frequency_mhz} MHz"
 
 
 def predict(input_data: dict, bundle: dict):
